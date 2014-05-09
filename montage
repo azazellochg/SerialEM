@@ -1,0 +1,14 @@
+#Stupid montage macro v1 15-02-2014 Grigory
+#Make sure to make Eucentric - Fine, to calibrate Image Shift and Autofocus, also set Target Defocus before starting the macro!
+Verbose 1
+x = 5
+y = 5
+SetDirectory Z:\Grigory\folder
+SetBeamBlank 1
+OpenNewMontage $x $y mountXXX.mrc
+SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
+Delay 5 sec
+Autofocus #autofocus and set target defocus
+Montage
+CloseFile
+SetBeamBlank 1 # to be sure that the beam is blanked
