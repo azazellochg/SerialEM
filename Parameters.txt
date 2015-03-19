@@ -1,0 +1,44 @@
+MacroName Parameters
+# macro to include all the parameters used in all the macros
+# It should be called in the beginning of any main macro
+
+# 2014-10-21 12:08:06
+
+Echo ---> calling Parameters ...
+
+## for LD-Modulo 
+# 1) type to do 
+# type = 0 -> Precisely to the picked point
+# type = 1 -> Use ZeroIS-quick, i.e. rough positioning
+# type = 2 -> Align to template in P twice, precisely
+# type = 3 -> Align to template once, rough positioning
+type = 3
+
+# 2) points to do things. Skip between those points.
+# E.g. pointXY = 7, pointZ = 14, do XY at 7th, and Z at 14th
+# E.g. pointZ = 0 -> not do Z change at all
+# E.g. pointXY = pointZ = 1, do everything at everything point
+#      i.e. not to skip any point. 
+pointXY = 1
+pointZ = 1
+
+## for CycleTargetDefocus (um), default step is 0.1(um)
+TD_low = -1.2
+TD_high = -2.2
+
+## for Drift 
+# skip = 1 -> no drift control
+# skip = 0 -> drift control
+# drift rate threshold (A/sec.), only get used for skip = 0
+skip = 1
+crit = 5
+
+## K2 special, is this a K2 camera. 1 for yes, 0 for no.
+# this is for no return for Record Frame exposure for a K2 camera.
+# how many first frames to return sum, only get used for k2 = 1
+k2 = 0
+no_return = 0
+
+## for movie collection on K2 or Falcon Hack, return sum to SEM might 
+## not need to be saved. Set "save" to 1 to save or 0 not to save.
+save = 1
