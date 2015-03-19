@@ -1,0 +1,144 @@
+MacroName LD-Modulo
+# Macro to run from Acquire at points... 
+# it skips some point for preparing step just take shot
+# last update @ 2014-10-23 02:30:54
+
+ResetClock
+echo ===> Running LD-Modulo ...
+
+## define the next line, or by calling "Parameters"
+# point to do things (5,10,15...), skip between
+# and do Z_byV at double space
+# pointXY = 5
+# pointZ = 12
+# pointZ = 0
+Call Parameters
+
+Echo *****
+Echo ***** Check Beam, Defocus etc. at every $pointXY_th point ... 
+Echo ***** Check Eucentricity at every $pointZ_th point...              
+Echo *****
+############ no edit below ################
+
+# find index number for current acquire
+ReportNavItem
+echo Acquiring Item is $navAcqIndex
+remainderXY = modulo $navAcqIndex $pointXY
+Loop 1
+If $pointZ == 0
+    remainderZ = 9999
+Else
+    remainderZ = modulo $navAcqIndex $pointZ
+Endif
+
+## very first one, force two round realigning
+If $navAcqIndex == 1
+    ForceCenterRealign 
+    echo -> Very first "A" item, ForceCenterRealign
+Endif
+
+# find GroupStatus for current item. It is 1 for first 
+# acquire item in the group.
+# It is recommended to have a new group for each mesh.
+ReportGroupStatus
+GS = $reportedValue1
+EndLoop
+
+## now a few actions after get to the point
+Loop 1
+# realign to that item first
+RealignToNavItem 1
+
+# what to do after realign and before Z change 
+# which type to do. 0 for precise, 1 for quick, 2 for template 
+# in buffer P already
+If $type == 0 OR $type == 1
+    Copy A P
+Elseif $type == 2
+    Echo --> type = $type -- A template is assumed in buffer P, aligned to precisely
+Elseif $type == 3
+    Echo ---> Type = $type -- align to template once, rough positioning
+Else 
+    Echo ---> Type = $type is not defined, exit... You should End Acquire
+    exit
+Endif
+
+
+# if pointZ = 0, skip Z chang i.e., not to do any Z_byV or Z_byG
+If $remainderZ == 9999
+    Echo --> Not doing Z Change,  as pointZ is set to 0.
+Elseif $remainderZ == 0 OR $GS == 1
+    Call Z_byV
+    UpdateGroupZ
+Endif
+
+# take care of XY postion after possible Z change
+If $type == 0 OR $type == 2
+    echo --> Type = $type (0:precisely, 2:template)
+    Call AlignToP 
+Elseif $type == 1
+    echo --> Type = $type (use ZeroIS-quick - rough positioning)
+    Call ZeroIS-quick
+Elseif $type == 3
+    echo --> Type = $type (use template to align one round)
+    Call AlignToP-quick
+    Call ZeroIS-quick
+Else 
+    echo --> Type = $type is not defined, exit... You should End Acquire
+    exit
+Endif
+
+# skip XY, based on remainderXY 
+If $remainderXY == 0 OR $GS == 1
+    AutoCenterBeam
+    Call CycleTargetDefocus
+   ## If focus change too much, abort and use original 
+   ## need latest beta
+    FocusChangeLimits -10 10
+    G
+    G
+Else
+    Continue
+Endif 
+Endloop
+
+## drift control or not is set in Parameters 
+## with "skip" set value, 1 will skip. 
+Loop 1
+If $skip == 1
+    continue 
+Else
+    Call Drift
+Endif
+EndLoop
+
+# final shots
+Loop 1
+If $k2 == 1
+    echo => This is a k2 camera. 
+    echo => EarlyReturnNextShot $no_return
+    EarlyReturnNextShot $no_return
+Else
+    continue
+Endif
+EndLoop
+
+R
+
+## save return image or not
+Loop 1
+if save == 1
+   S
+Else 
+   echo R image in SerialEM window is not saved ...
+Endif
+EndLoop
+
+## in case the objective went off too much
+SetStandardFocus 0
+
+#clock
+ReportClock 
+Echo $reportedValue1 seconds!
+
+Echo ------------------------------------------------------------------------
