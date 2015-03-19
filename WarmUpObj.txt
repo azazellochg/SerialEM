@@ -1,0 +1,8 @@
+MacroName WarmUpObj
+# warm up obj lens after LM map is done. 
+
+Vmag_LD = 2300
+
+M
+NewMap
+SetMag $Vmag_LD
