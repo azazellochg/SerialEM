@@ -1,0 +1,42 @@
+MacroName Z_byG
+##############################
+# Z_byG.txt
+# Updated @ 2014-10-21 12:22:49 
+##############################
+#
+# a macro to adjust the eccentric center using beam tilted pairs.
+# It uses Autofocus to measure the focus and adjust Z instead.
+#
+
+Echo ===> Running Z_byG ...
+
+# If in Low Dose, the area should be at Focus first
+# before defocus is zeroed, because it could come from V with 
+# large defocus offset. It could float up in that case. 
+
+SuppressReports
+ReportLowDose
+# if in LowDose and area is V
+If $reportedValue1 == 1 AND $reportedValue2 == 0
+  GoToLowDoseArea F
+Endif 
+
+#==================
+# set objective lens 
+#==================
+SetEucentricFocus
+#NormalizeLenses 2
+#Delay 1
+
+#===========
+# Adjust Z
+#===========
+Loop 2
+Autofocus -1
+ReportAutofocus 
+t = -1 * $reportedValue1
+MoveStage 0 0 $t
+echo --> Z moved $reportedValue1 micron 
+EndLoop
+
+#=== end ====
