@@ -1,0 +1,25 @@
+MacroName PrepTS
+# macro to prepare for Tilting Series
+# It brings to each of the picked item and
+# refine eucentricity using tilting beam method.
+# This is used from Acquire at points... as pre-action macro.
+#
+# It is similar to "refine and realign", but without wobbling 
+# the stage
+#
+# update @ 2014-10-22 08:21:20
+
+Echo ===> Running PrepTS ...
+
+# realign to 
+RealignToNavItem 1
+
+# copy last image to buffer P
+Copy A P
+
+# not adjust Z height, in LD with View area
+Call Z_byV
+
+# refine position, incase the lateral displacement 
+# is siginificant after Z height change
+Call AlignToP
