@@ -1,0 +1,35 @@
+MacroName CropImageAToP
+# crop an image in A based on the dimension in P
+
+# update @ 2014-11-20 12:38:53
+#
+# Note: the sharp edge might cause trouble in aligning
+# need to retest more. Might need to smooth edge pixels
+
+Echo ===> Running CropImageAToP ...
+
+SuppressReports
+
+## get info for A and P
+ImageProperties P
+XP = $reportedValue1
+YP = $reportedValue2
+
+ImageProperties A
+XA = $reportedValue1
+YA = $reportedValue2
+
+Xdiff = $XA - $XP
+Ydiff = $YA - $YP
+
+half_Xdiff = $Xdiff / 2
+half_Ydiff = $Ydiff / 2
+
+X0 = $half_Xdiff 
+X1 = $XP + $half_Xdiff
+
+Y0 = $half_Ydiff 
+Y1 = $YP + $half_Ydiff
+
+# crop
+CropImage A $X0 $X1 $Y0 $Y1
