@@ -1,0 +1,37 @@
+MacroName CycleTargetDefocus
+#
+# by Chen Xu, update @ 2014-10-21 12:12:55
+#
+# change Target Defocus on the fly
+#
+###########################################
+# Note: need 3.5 beta 
+###########################################
+
+# define defocus up and down thresholds, and changing step
+# set here or by calling Parameters
+#TD_low = -1.2
+#TD_high = -2.0
+Call Parameters
+
+step = 0.1
+
+Echo ===> Running CycleTargetDefocus ...
+Echo >>>> defined Range and Step (um)  => [ $TD_low, $TD_high ], [ $step ].
+
+######### no editing below ###############
+delta = -1 * $step
+
+# if the current TargetDefocus is outside of range, make it as TD_low.
+# Otherwise, increase a step of $delta
+
+SuppressReports
+ReportTargetDefocus 
+If $reportedValue1 > $TD_low OR $reportedValue1 < $TD_high
+   SetTargetDefocus $TD_low
+Else 
+   IncTargetDefocus $delta
+Endif
+
+ReportTargetDefocus 
+Echo TargetDefocus = $reportedValue1 um
