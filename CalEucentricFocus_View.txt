@@ -1,0 +1,36 @@
+MacroName CalEucentricFocus_View
+# macro to quickly calbrate EucentricFocus value using View in LD. 
+# update @ 2014-10-21 12:28:58
+
+Echo ===> Running CalEucentricFocus_View ...
+
+# use SEM built-in wobbling way to get to Eucentricity
+Eucentricity 3
+
+## record original TargetDefocus
+ReportTargetDefocus 
+orig = $reportedValue1
+
+## make sure TargetDefocus is at 0
+SetTargetDefocus 0
+
+## take care of LD offset
+GoToLowDoseArea V
+SaveFocus 
+SetStandardFocus 0
+
+## Bring objective to Eucentric Focus. Not use normalize
+## because it caused beam to shift (not stable) 
+#NormalizeLenses 2
+#Delay 1
+Loop 3
+# use View in LD
+	G 1 1
+EndLoop
+CalEucentricFocus
+
+## Restore Focus
+RestoreFocus 
+
+## restore original target defocus
+SetTargetDefocus $orig
