@@ -1,0 +1,134 @@
+MacroName MultiShotByIS
+## define following three lines, they are 
+# radius, number of shots around the hole, second delay after ImageShift
+
+r = 1.0
+shot = 4
+delay = 2
+
+###
+sqr2 = 0.707 * $r
+sqr3 = 0.809 * $r
+half = 0.5 * $r
+###
+
+###
+# shift and then reset for each, so it's 
+# less confusing for next one. 
+##
+
+If $shot == 4
+ImageShiftByMicrons 0 $r
+delay $delay 
+R
+S
+ImageShiftByMicrons 0 -$r
+
+ImageShiftByMicrons 0 -$r
+delay $delay 
+R
+S
+ImageShiftByMicrons 0 $r
+
+ImageShiftByMicrons $r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons -$r 0
+
+ImageShiftByMicrons -$r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons $r 0
+
+ElseIf $shot == 6
+ImageShiftByMicrons $r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons -$r 0
+
+ImageShiftByMicrons -$r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons $r 0
+
+ImageShiftByMicrons $half $sqr3
+delay $delay 
+R
+S
+ImageShiftByMicrons -$half -$sqr3
+
+ImageShiftByMicrons $half -$sqr3
+delay $delay 
+R
+S
+ImageShiftByMicrons -$half $sqr3
+
+ImageShiftByMicrons -$half $sqr3
+delay $delay 
+R
+S
+ImageShiftByMicrons $half -$sqr3
+
+ImageShiftByMicrons -$half -$sqr3
+delay $delay 
+R
+S
+ImageShiftByMicrons $half $sqr3
+
+ElseIf $shot == 8 
+
+ImageShiftByMicrons 0 $r
+delay $delay 
+R
+S
+ImageShiftByMicrons 0 -$r
+
+ImageShiftByMicrons 0 -$r
+delay $delay 
+R
+S
+ImageShiftByMicrons 0 $r
+
+ImageShiftByMicrons $r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons -$r 0
+
+ImageShiftByMicrons -$r 0
+delay $delay 
+R
+S
+ImageShiftByMicrons $r 0
+
+ImageShiftByMicrons $sqr2 $sqr2
+delay $delay 
+R
+S
+ImageShiftByMicrons -$sqr2 -$sqr2
+
+ImageShiftByMicrons $sqr2 -$sqr2
+delay $delay 
+R
+S
+ImageShiftByMicrons -$sqr2 $sqr2
+
+ImageShiftByMicrons -$sqr2 $sqr2
+delay $delay 
+R
+S
+ImageShiftByMicrons $sqr2 -$sqr2
+
+ImageShiftByMicrons -$sqr2 -$sqr2
+delay $delay 
+R
+S
+ImageShiftByMicrons $sqr2 $sqr2
+
+Else
+Echo You have to choose 4, 6 or 8 shots, quit!
+Endif
