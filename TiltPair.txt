@@ -1,0 +1,44 @@
+MacroName TiltPair
+###############################
+# TiltPair.txt
+# update @ 2014-10-21 12:21:06
+###############################
+#
+# A main macro for Tilting image pairs. 
+# work for any two angles
+
+Echo ===> Running TiltPair ...
+ResetClock
+
+# set angles 
+ang_1 = 0
+ang_2 = 45
+
+# Make sure it starts with 0, in case it was stopped at 
+# some angle from last round
+TiltTo 0
+
+# collect tilting pairs 
+Loop 2 i
+if $i == 1
+   ang = $ang_1
+else
+   ang = $ang_2
+endif
+
+RealignToNavItem 1
+WalkUpTo $ang
+Call ZeroIS
+AutoCenterBeam
+G
+G
+Call Drift
+R
+S
+EndLoop
+
+# back to 0
+TiltTo 0
+
+ReportClock
+echo -------------------------------------------------------------
