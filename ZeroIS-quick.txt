@@ -1,0 +1,38 @@
+MacroName ZeroIS-quick
+# macro to clears out IS by either using 
+# Clearalignment or Resetimageshift, depending on
+# the limit set. And if the left over IS from Realign 
+# is too big, skip this point, likely someting is wrong.
+
+# 2014-10-21 12:05:23
+
+Echo ===> Running ZeroIS-quick ...
+
+# position off limit in micron, now set in macro "Parameters"
+limit = 0.3
+#Call Parameters
+
+dead = 3.0
+
+############### no editing below ###################
+
+# IS from Realign routine
+ReportImageShift
+X = $reportedValue1
+Y = $reportedValue2
+IS = sqrt $X * $X + $Y * $Y
+
+Loop 1
+If $IS <= $limit
+    ClearAlignment
+    echo IS ($IS) <= limit ($limit) um
+    echo Clearalignment
+Elseif $IS > $limit AND $IS <= $dead
+    echo IS ($IS) > limit ($limit) um
+    echo Resetimageshift
+    ResetImageShift
+Else 
+    Echo IS ($IS) > $dead um, skip this point!
+    exit
+Endif
+EndLoop
