@@ -1,0 +1,32 @@
+MacroName CalEucentricFocus
+# macro to calibrate EucentriFocus using F 
+# update @ 2014-10-22 07:55:56
+
+Echo ===> Running CalEucentricFocus ...
+
+# use SEM built-in wobbling way to get to Eucentricity
+Eucentricity 3
+
+## record original TargetDefocus
+ReportTargetDefocus 
+orig = $reportedValue1
+
+## make sure TargetDefocus is at 0
+SetTargetDefocus 0
+
+## bring Objective to eucentric
+## not to normalize because beam will be 
+## drifting afterwards.
+
+#NormalizeLenses 2
+#Delay 1
+Loop 3
+	G
+EndLoop
+
+## Cal - record the value in memory, unless in admin mode
+## and save it to calibration file.
+CalEucentricFocus
+
+## restore original target defocus
+SetTargetDefocus $orig
