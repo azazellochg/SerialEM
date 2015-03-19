@@ -1,0 +1,66 @@
+MacroName AlignToP-quick
+#  
+# a macro to align to an image in buffer P, only ONCE.
+# So this is rough positioning, saving some time.
+# it takes single shot and even crop it when needed. At the end, 
+# the ImageShift != 0.
+# SEM 3-5 beta built 10/10/2014
+# update @  2014-11-18 02:09:22
+
+Echo ====> Running AlignToP-quick ...
+
+SuppressReports
+
+## Low Dose
+ReportLowDose 
+If $reportedValue1 == 1
+    ImageLowDoseSet P
+    S = $reportedValue1
+ElseIf $reportedValue1 == 0
+    ImageProperties P
+    S = $reportedValue6
+Endif
+
+## get image parameters in buffer P
+ImageProperties P
+XP = $reportedValue1
+YP = $reportedValue2
+bin = $reportedValue3
+E = $reportedValue4
+# PixelSize = $reportedValue5
+#S = $reportedValue6
+
+# figure out from which set the image was taken
+#(0=view, 1=focus, 2=trial, 3=record, 4=preview)#
+If $S == 0
+    shot = View
+Elseif $S == 1
+    shot = Focus
+Elseif $S == 2 OR $S == 5
+    shot = Trial
+Elseif $S == 3
+    shot = Record
+Elseif $S == 4
+    shot = Preview
+Endif
+
+## set camera parameters
+SetExposure $S $E
+SetCenteredSize $S $bin $XP $YP
+
+## align
+Loop 1
+$shot
+# Need crop, for Camera like Eagle or Falcon?
+ImageProperties A
+XA = $reportedValue1
+YA = $reportedValue2
+If $XA > $XP OR $YA > $YP
+    echo Call CropImageAToP
+    Call CropImageAToP
+Endif
+AlignTo P
+EndLoop 
+
+## reset camera
+RestoreCameraSet
