@@ -1,0 +1,38 @@
+MacroName Z_byV
+##############################
+# Z_byV.txt
+# by Chen Xu, Oct  23, 2010, 
+# Last modified: @ 2014-10-21 12:26:18
+##############################
+# 
+
+Echo ===> Running Z_byV ...
+
+#====================================
+# for defocus offset of V in Low Dose, save it
+# ===================================
+GoToLowDoseArea V
+SaveFocus
+
+#==================
+# set object lens 
+#==================
+SetEucentricFocus
+#NormalizeLenses 2
+#Delay 1
+
+#===========
+# Adjust Z
+#===========
+Loop 2
+Autofocus -1 1
+ReportAutofocus 
+Z = -1 * $reportedValue1
+MoveStage 0 0 $Z
+echo Z has moved --> $Z micron 
+EndLoop
+
+#=========================================
+# restore the defocus set in V originally
+# ========================================
+RestoreFocus
