@@ -1,0 +1,14 @@
+MacroName ZeroIS
+# a macro to "drag" the stage to target point and clear out
+# any Image Shift
+
+shot = V
+
+Copy A P
+ResetImageShift
+
+Loop 2
+  $shot
+  AlignTo P
+  ResetImageShift
+EndLoop
