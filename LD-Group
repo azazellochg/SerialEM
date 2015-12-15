@@ -1,0 +1,30 @@
+MacroName LD-Group
+
+# macro to skip points except the very first in the group.
+# assume LD is setup.
+
+# X,Y position 
+RealignToNavItem 1
+Copy A P
+# ReadFile hole.st P
+
+# preparation for first item in group
+ReportGroupStatus 
+If $repVal1 == 1 OR $repVal1 == 0
+    Call Z_byV
+    UpdateGroup Z
+    CallFunction MyFuncs::AlignToP 2
+    #CallFunction MyFuncs::ZeroIS-quick 0.3 3.0
+    AutoCenterBeam
+    CallFunction MyFuncs::CycleTargetDefocus -1.2 -2.0 0.2
+    G
+    G
+Else 
+    CallFunction MyFuncs::AlignToP 2    
+    #CallFunction MyFuncs::ZeroIS-quick 0.3 3.0
+Endif
+
+# for other in group, clear out shift and take shot
+# EarlyReturnNextShot 0
+R
+S
