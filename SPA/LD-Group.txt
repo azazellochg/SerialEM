@@ -1,0 +1,64 @@
+MacroName LD-Group
+# Author: Chen Xu Chen.Xu@umassmed.edu
+# Modified: Grigory Sharov 27/12/2016
+# macro to run with "Nav->Acquire at points"
+# assume LD is setup, MMM square polygon map is done and grid points are defined
+# also hole.st with a hole template must exist and be opened before run
+
+defLow = -1.2
+defHigh = -2.4
+defStep = 0.2
+illumArea = 0.7                # beam size in Record mode, um
+drift = 5                      # 5A/s max drift
+pointXY = 5                    # skip autofocus every 5 points
+#SuppressReports
+
+ResetClock
+# find index number for current point
+Echo ---> Moving to next position:
+ReportNavItem
+Echo ---> Acquiring Hole $navAcqIndex...
+remainderXY = modulo $navAcqIndex $pointXY
+FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
+
+# X,Y position
+Echo Taking a FoilHole image and realigning it with GridSquare...
+RealignToNavItem 1
+#OpenOldFile hole.st
+ReadFile hole.st P                   # read hole template (should contain only a single hole)
+
+# preparation for first item in group (one group = one square)
+ReportGroupStatus
+If $repVal1 == 1 OR $repVal1 == 0                          # 1 for group head and 0 for non-group item
+   Echo ---> Finding eucentric point...
+   #CallFunction MyFuncs::Z_byV                            # get euc using View - only if scope is WELL aligned
+   Eucentricity 2                                          # fine euc (works within 10um or a bit more)
+   Echo ---> Updating Z for all FoilHoles in this GridSquare
+   UpdateGroupZ                                            # update Z for all items in group
+   Echo ---> Centering FoilHole image twice...
+   CallFunction MyFuncs::AlignToP 2                        # this centers hole and clears out any ImageShift
+   CallFunction MyFuncs::CycleTargetDefocus $defLow $defHigh $defStep
+   Echo ---> Running Autofocus...
+   ChangeFocus -5
+   G
+   CallFunction MyFuncs::Drift $drift                      # wait for drift below threshold
+Else
+   Echo ---> Centering FoilHole image twice...
+   CallFunction MyFuncs::AlignToP 2                        # this centers hole and clears out any ImageShift
+   CallFunction MyFuncs::CycleTargetDefocus $defLow $defHigh $defStep
+   If $remainderXY == 0                                    # do autofocus every N hole
+      Echo ---> Running Autofocus (every $pointXY holes)...
+      ChangeFocus -5
+      G
+   Endif
+Endif
+
+#EarlyReturnNextShot 0                    # K2: do not wait for frames to be written, also skip total sum display
+CallFunction MyFuncs::CheckDewars 0      # check if LN2 is filling, do not update HW dark ref (0)
+Echo ---> Acquiring images now...
+CallFunction MyFuncs::MultiShotByIS 4 $illumArea   # take 4 images per 2um hole using image shift (allowed values are 4,6,8)
+#R
+
+ReportClock
+Echo ---> Acquired hole # $navAcqIndex in $reportedValue1 seconds!
+Echo ---------------------------------------
