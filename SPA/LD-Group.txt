@@ -39,7 +39,7 @@ If $repVal1 == 1 OR $repVal1 == 0                          # 1 for group head an
    CallFunction MyFuncs::AlignToP 2                        # this centers hole and clears out any ImageShift
    CallFunction MyFuncs::CycleTargetDefocus $defLow $defHigh $defStep
    Echo ---> Running Autofocus...
-   ChangeFocus -5
+   ChangeFocus -3
    G
    CallFunction MyFuncs::Drift $drift                      # wait for drift below threshold
 Else
@@ -48,7 +48,7 @@ Else
    CallFunction MyFuncs::CycleTargetDefocus $defLow $defHigh $defStep
    If $remainderXY == 0                                    # do autofocus every N hole
       Echo ---> Running Autofocus (every $pointXY holes)...
-      ChangeFocus -5
+      ChangeFocus -3
       G
    Endif
 Endif
