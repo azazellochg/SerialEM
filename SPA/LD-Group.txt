@@ -10,7 +10,7 @@ defHigh = -2.4
 defStep = 0.2
 illumArea = 0.7                # beam size in Record mode, um
 drift = 5                      # 5A/s max drift
-pointXY = 5                    # skip autofocus every 5 points
+pointXY = 5                    # do autofocus every 5 points
 #SuppressReports
 
 ResetClock
@@ -32,9 +32,9 @@ ReportGroupStatus
 If $repVal1 == 1 OR $repVal1 == 0                          # 1 for group head and 0 for non-group item
    Echo ---> Finding eucentric point...
    #CallFunction MyFuncs::Z_byV                            # get euc using View - only if scope is WELL aligned
-   Eucentricity 2                                          # fine euc (works within 10um or a bit more)
-   Echo ---> Updating Z for all FoilHoles in this GridSquare
-   UpdateGroupZ                                            # update Z for all items in group
+   #Eucentricity 1                                          # rough euc
+   #Echo ---> Updating Z for all FoilHoles in this GridSquare
+   #UpdateGroupZ                                            # update Z for all items in group
    Echo ---> Centering FoilHole image twice...
    CallFunction MyFuncs::AlignToP 2                        # this centers hole and clears out any ImageShift
    CallFunction MyFuncs::CycleTargetDefocus $defLow $defHigh $defStep
