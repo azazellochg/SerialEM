@@ -1,4 +1,11 @@
 SerialEM
 ========
 
-A collection of macros for SerialEM for automated data collection, most of them taken from http://www.bio.brandeis.edu/KeckWeb/emdoc/en_US.ISO8859-1/articles/ (c) Chen Xu
+A collection of macros for SerialEM for automated data collection, calibration and other procedures.
+
+Useful links:
+- http://sphinx-emdocs.readthedocs.io/en/latest/singleparticle_serialem.html
+- http://www.bio.brandeis.edu/KeckWeb/emdoc/en_US.ISO8859-1/articles/SerialEM-howto:macro-explain/article.html
+- https://wiki-bsse.ethz.ch/display/CINA/SerialEM+LowDose+Operation+in+C-CINA
+- https://serialemscripts.nexperion.net/
+- https://www.youtube.com/playlist?list=PLGggUwWmzvs-DV4jCapSl5XQ-hpAXtzMb
