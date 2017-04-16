@@ -1,0 +1,102 @@
+# This script measures time for aligning K2 frames. Its main purpose is to compare timing with and without a GPU, but the use of the GPU is optional. It tests all variations of counting versus superresolution, 8 or 14 frames, simple or more complex alignment, and saving frames or not. Results can be extracted from the log with: grep '^Mean\|filter.*,'
+MacroName TimeK2
+Require arrays
+
+testGPU = 1          # Set to 1 to test with GPU
+testSaving = 1     # Set to 1 to test with file saving using current parameters
+
+# These two entries determine how many frames and how many different numbers of frames are tested
+# If you do enough frames to trigger smoothing (15 by default), then you should turn off smoothing for a
+# test that is not redundant with the the test with multiple filters.
+frameTime = 0.2
+exposures = {1.6 2.8}
+
+# Binnings for counting and super-resolution mode alignment
+faBinnings = {4 8}
+
+# Filter radii for multiple-filter case
+radii = { 0.06 0.08 0.1 }
+
+# This saves your parameters for restoration at the end
+# But you can use the names of these variables to know how to change these settings below 
+# for the two tests or add your own test
+ReportFrameAliParams saveBin saveKeep saveStrategy saveAVA saveRefine saveGroup
+ReportFrameAli2 saveGPU saveTrunc saveHybrid saveRad1 saveRad2 saveRad3
+
+OnStopCallFunc RestoreAliChanges
+
+SuppressReports
+ 
+numOuter = $testSaving + 1
+Loop $numOuter outerInd
+  ifSave = $outerInd - 1
+  SetBinning R 1
+  RestoreCameraSet R
+  SetDoseFracParams R 1 $ifSave 1 1
+  SetBinning R 1
+  numTimes = 3
+  if $ifSave == 0
+    SetProcessing R 2
+    numTimes = 4
+  endif
+
+  echo **********************************************
+  echo Pairwise 8, one filter, no refine, saving $ifSave
+  SetFrameAliParams 4 $saveKeep 0 8 0 0
+  SetFrameAli2 0 0 0 $radii[1] 0. 0.
+  CallFunction TimingLoop 4
+
+  echo **********************************************
+  echo All pairs, 3 filters, refine 5, saving $ifSave
+  SetFrameAliParams 4 $saveKeep 0 8 0 0
+  SetFrameAli2 0 0 0 $radii[1] $radii[2] $radii[3]
+  CallFunction TimingLoop 4
+EndLoop
+
+
+# TimingLoop runs mode/exposure/GPU loops
+#
+Function TimingLoop 0 0 
+
+numTest = $testGPU + 1
+proc = { CPU GPU }
+modeText = { Counting Super-res }
+
+Loop $numTest indTest
+  Loop 2 K2mode
+    SetK2ReadMode R $K2mode
+    SetFrameAliParams $faBinnings[$K2mode] $saveKeep
+    Loop $#exposures indExp
+      thisExp = $exposures[$indExp]
+      SetFrameTime R $frameTime
+      SetExposure R $thisExp
+      numFrames = NEARINT ($thisExp / $frameTime)
+      ifGPU = $indTest - 1
+      SetFrameAli2 $ifGPU
+      meanSum = 0
+      Loop $numTimes indTime
+        ResetClock
+        R
+        ReportClock thisTime
+        if $indTime == 1
+         timeArr = $thisTime
+        else
+          timeArr = { $timeArr $thisTime }
+        endif
+        #echo Time = $thisTime
+        meanSum = ROUND ( $meanSum + ($thisTime / $numTimes)  2)
+      EndLoop 
+      echo Times: $timeArr
+      echo Mean $modeText[$K2mode] mode, $numFrames frames, $proc[$indTest]  time = $meanSum
+    EndLoop 
+  EndLoop 
+EndLoop 
+EndFunction 
+
+
+### RestoreAliChanges
+###
+Function RestoreAliChanges
+SetFrameAliParams $saveBin $saveKeep $saveStrategy $saveAVA $saveRefine $saveGroup
+SetFrameAli2 $saveGPU $saveTrunc $saveHybrid $saveRad1 $saveRad2 $saveRad3
+EndFunction 

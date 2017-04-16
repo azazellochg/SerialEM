@@ -1,0 +1,147 @@
+################################################################################
+#
+#   Macro CINAAutoFocus
+#
+#   This macro will focus the specimen. To do so, it 
+#   - Centers the beam
+#   - Meausres current defocus 
+#   - If measurement gave a reasonable value, it will correct the focus on the microscope
+#
+#   The entire focussing routin is only happening every so often, as defined by "focusEachHole"
+#
+# Daniel Caujolle-Bert, Henning Stahlberg, C-CINA, Biozentrum, University of Basel
+# Feb. 25, 2017
+#
+################################################################################
+MacroName CINAAutoFocus
+ 
+    # Check if the stage moved to a different grid square at a different Z height:
+    ReportStageXYZ
+    NEWX = $reportedValue1
+    NEWY = $reportedValue2
+    NEWZ = $reportedValue3
+    If ABS ($NEWX - $LASTX) > 15.0 
+        echo Large X change detected. LASTX = $LASTX,  NEWX = $NEWX.  Requires new focussing.
+        FOCUSCOUNTER := 0
+    endif
+    If ABS ($NEWY - $LASTY) > 15.0
+        echo Large Y change detected. LASTY = $LASTY,  NEWY = $NEWY.  Requires new focussing.
+        FOCUSCOUNTER := 0
+    endif
+    If ABS ($NEWZ - $LASTZ) > 0.1 
+        echo Z change detected. LASTZ = $LASTZ,  NEWZ = $NEWZ.  Requires new focussing.
+        FOCUSCOUNTER := 0
+    endif  
+
+    # Check, if it is already time to focus:
+    If $FOCUSCOUNTER < 2
+        Echo Focussing on this one..., Focus Counter = $FOCUSCOUNTER
+ 
+        LASTX := $NEWX
+        LASTY := $NEWY
+        LASTZ := $NEWZ
+        
+        ## Center Beam, assume AutoCenterBeam policy has been set up
+        # AutoCenterBeam
+        
+        ## Center beam in Focus mode 
+        F
+        ReportMeanCounts 
+        if $repVal1 > 10
+            CenterBeamFromImage
+        endif
+
+        if  $repVal1 < 1 
+            Echo FOCUS image is black. MeanCounts was $repVal1.
+            focus_problem_counter := $focus_problem_counter + 1
+            echo FOCUS problem counter = $focus_problem_counter
+        else
+            focus_problem_counter := 0
+        endif
+
+        if $focus_problem_counter > 3
+             Echo Trying to save the beam:
+             SetEucentricFocus
+             ChangeFocus -2
+             SetBeamShift $good_beamshift_x $good_beamshift_y
+             ## Center beam in Focus mode 
+             F
+             CenterBeamFromImage
+             focus_problem_counter := 0
+             FOCUSCOUNTER := 0
+        endif
+
+        ReportNumNavAcquire
+
+        ## CycleTargetFocus, range is set in macro "Parameters".
+        Call CycleTargetDefocus
+        
+        FocusChangeLimits -70 70
+        Echo Now focussing:
+        Loop 1
+            CallFunction FocusOnce
+        EndLoop
+        if $GridType == 2
+            # Use TRIAL mode with a small focussed beam to center the beam
+            GoToLowDoseArea T
+            Delay 1
+            T
+            CenterBeamFromImage
+            T
+        endif
+        DISPLAYCOUNTER := 0
+    Else
+        Echo Skipping focussing, Focus Counter = $FOCUSCOUNTER
+        GoToLowDoseArea F
+        ChangeFocus -0.1
+        delay 1
+        # F
+        # ReportMeanCounts 
+        # if $repVal1 > 10
+        #     CenterBeamFromImage
+        # endif
+        FOCUSCOUNTER := $FOCUSCOUNTER - 1
+    Endif
+    
+    
+    Function FocusOnce
+        # Get current defocus
+        ReportDefocus 
+        curDefocus = $repVal1
+        # Get and store measured value
+        if $GridType == 2
+            ChangeFocus -4
+            G -1
+            ChangeFocus +4
+            ReportAutofocus 
+            repAutoFocus = $repVal1 + 4
+        else  
+            G -1
+            ReportAutofocus 
+            repAutoFocus = $repVal1
+        endif
+        If ( ABS ($repAutoFocus) <= 0.1 ) OR ( ABS ($repAutoFocus) >= 200.0 )
+            # Autofocusing has failed, restore previous defocus value
+            Echo Autofocus has failed, restore previous defocus value
+            SetDefocus $curDefocus
+            FOCUSCOUNTER := 0
+        Else
+            # Autofocusing has worked well
+            # Apply measured defocus
+            ReportTargetDefocus
+            newDefocus = $curDefocus  -  $repAutoFocus + $repVal1 
+            Echo Autofocus has succeeded, Target defocus: $repVal1 , new defocus: $newDefocus
+            SetDefocus $newDefocus
+            F
+            ReportMeanCounts 
+            if $repVal1 > 10
+                CenterBeamFromImage
+            endif
+            FOCUSCOUNTER := $focusEachHole
+            ReportBeamShift 
+            good_beamshift_x := $repVal1 
+            good_beamshift_y := $repVal2
+            focus_problem_counter := 0
+            echo good beamshift = $good_beamshift_x, $good_beamshift_y
+        Endif
+    EndFunction

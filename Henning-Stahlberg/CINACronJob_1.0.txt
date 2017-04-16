@@ -1,0 +1,82 @@
+###################################################################
+# macro to perform maintenance tasks that are needed every few hours only.
+###################################################################
+#
+# Daniel Caujolle-Bert, Henning Stahlberg, C-CINA, Biozentrum, University of Basel
+# Feb. 25, 2017
+#
+MacroName CINACronJob
+
+     # Check if a number of variables are defined
+     # Check, if CRONJOBMASTER is defined
+     IsVariableDefined CRONJOBMASTER
+     If $reportedValue1 == 0
+        # Save Logfile, Close, Open new Logfile
+        SaveLogOpenNew LOGFILE.log
+        CRONJOBMASTER := 150
+        FOCUSCOUNTER := 0
+        DISPLAYCOUNTER := $DisplayOnly
+        LASTX := 10000
+        LASTY := 10000
+        LASTZ := 10000
+        focus_problem_counter := 0
+     Endif
+
+     echo "Cron job in $CRONJOBMASTER shots"
+
+     # Every few hours only:
+     if $CRONJOBMASTER > 0
+        CRONJOBMASTER := $CRONJOBMASTER - 1
+        DISPLAYCOUNTER := $DISPLAYCOUNTER - 1
+        echo Displaying in $DISPLAYCOUNTER images.
+        if $DISPLAYCOUNTER < 1
+            DISPLAYCOUNTER := $DisplayOnly
+            DisplayReturn := $noReturn
+        else
+            DisplayReturn := 0
+        endif
+        return
+     else   
+        CRONJOBMASTER := 150
+     endif
+     
+     DoRefine = 0
+     
+     # Get Refrigerant Levels
+     RefrigerantLevel 1
+     ALLEVEL = $repVal1
+     if $ALLEVEL > 30
+        DoRefine = 1
+     endif
+     
+     RefrigerantLevel 2
+     CLLEVEL = $repVal1
+     if $CLLEVEL > 40
+        DoRefine = 1
+     endif
+
+     if $DoRefine == 1     
+         # Refine ZLP   
+         GoToLowDoseArea V
+         Delay 2
+         GoToLowDoseArea F
+         Delay 2
+         GoToLowDoseArea R
+         Delay 2
+         L 
+         ReportMeanCounts 
+         if $repVal1 > 30
+            # Save Logfile, Close, Open new Logfile
+            # SaveLogOpenNew LOGFILE.log
+            RefineZLP 10
+         else
+            CRONJOBMASTER := 0
+         endif
+     else
+         CRONJOBMASTER := 0
+     endif
+     
+     
+     # Update Dark Reference
+     LongOperation DA -1
+     

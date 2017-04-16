@@ -1,0 +1,70 @@
+####################################################################
+# main macro for single particle data collection in Low Dose Mode
+####################################################################
+#
+# Daniel Caujolle-Bert, Henning Stahlberg, C-CINA, Biozentrum, University of Basel
+# Feb. 25, 2017
+#
+# Based on a cocept by Chen Xu
+# http://www.bio.brandeis.edu/KeckWeb/emdoc/en_US.ISO8859-1/articles/SerialEM-howto:macro-explain/x248.html
+#
+MacroName LD
+
+    Echo ===================== Starting LD Macro ================================
+    ReportClock
+    ticks = $repVal1
+
+    Call Parameters
+
+    # Echo ---> Checking, if refilling 
+    Call CheckDewarAutofill
+    
+    Call CINACronJob
+
+    ##ReportNavItem
+    ##ReportNumNavAcquire 
+    
+    ## position (X,Y)
+    RealignToNavItem 1
+    # Do it more precise still:
+    # Copy A P
+    # Call AlignToP
+
+    ## Drift control
+    # Call Drift
+
+    # Take care of focussing
+    Call CINAAutoFocus
+
+    EarlyReturnNextShot $DisplayReturn
+    
+    # Goto REcord Mode
+    GoToLowDoseArea R
+ 
+    # Number of shots in one hole is $NumberShots
+    # Radius of off-center ImageShift displacement is $IS_RAD
+    
+    if $NumberShots == 1
+        Delay 7
+        R
+    else
+        Loop $NumberShots icount
+            IS_ANGLE = ( $icount - 1 ) * 360 / $NumberShots
+            IS_X = $IS_RAD * sin ( $IS_ANGLE )
+            IS_Y = $IS_RAD * cos ( $IS_ANGLE )
+            Echo Taking image at angle $IS_ANGLE : X = $IS_X , Y = $IS_Y
+            ImageShiftByMicrons $IS_X $IS_Y
+            Delay 5
+            R
+        endloop
+        ImageShiftByMicrons 0 0 
+        if $NumberShots > 6
+            Delay 5
+            R
+        endif
+    endif
+
+    ReportClock
+    eticks = ($repVal1 - $ticks)
+    Echo ===> Leaving LD Macro (took $eticks s).
+    Echo .
