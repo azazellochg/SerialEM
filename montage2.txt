@@ -8,6 +8,7 @@ LongName Montage for neg.stain acquisition of plain carbon grids
 # 300-mesh grids: 58um square size
 # 400-mesh grids: 37um square size
 
+###################################
 # Edit the following parameters:
 
 SetDirectory \\EM-SUPPORT3\Spirit\Grigory\Folder
@@ -25,7 +26,7 @@ defStep = 0.2       # defocus step
 
 index = 1           # change this index for every gridsquare (new file will be montage_$index.mrc)
 
-####################################
+###################################
 Verbose 0
 FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
 TestShiftX = $shift * $Xsteps
@@ -52,7 +53,7 @@ Loop $Ysteps row
         If $checkAutofocus == 0
             Echo ---> Autofocusing (every $autofocus images)...
             ChangeFocus -1 # SerialEM mistakes when too close to focus
-            G
+            Autofocus
             #CallFunction Drift $drift # wait for drift below threshold
         Endif
         Montage
@@ -70,7 +71,7 @@ Loop $Ysteps row
     MoveStage $shift 0 # goes to next Y-row
 EndLoop
 
-####################################
+###################################
 Function CycleTargetDefocus 3 0
 ## three variables, not string
 
@@ -99,14 +100,13 @@ TargetDefocus = $repVal1
 Echo Target defocus = $repVal1 um
 SetDefocus $repVal1
 EndFunction
-######################################
+###################################
 Function Drift 1 0 
 # A function to measure drift rate, if good, skip to the end of loop. 
 # Otherwise, exit execution -- i.e. skip the point. 
 
 Echo ---> Measuring Drift ($argVal1 A/s max allowed)...
 
-#=============
 # parameters 
 #=============
 ## drift rate threshold
@@ -127,7 +127,7 @@ Loop $times index
    dy = $reportedValue4
    dist = sqrt $dx * $dx + $dy * $dy
    rate = $dist / $period * 10
-   echo Estimated drift $rate A/sec
+   echo Estimated drift = $rate A/sec
 
    If $rate < $crit
       echo Drift is below specified limit after $index trials, continue...      
@@ -140,4 +140,4 @@ Loop $times index
    Endif
 EndLoop
 EndFunction
-######################################
+###################################
