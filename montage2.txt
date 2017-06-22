@@ -1,39 +1,75 @@
-Macro 1
-MacroName Montage neg. stain C plain
-LongName Montage script for neg. stain acquisition of plain carbon grids
-# Check eucentricity (preferably at square center), calibrate Stage Shift and Autofocus
+# Check eucentricity (preferably at square center), calibrate Image Shift and Autofocus
 # Run one montage manually to figure out max image shift for the current magnification
-# Start macro at the top left corner of the grid square!
+# Start macro at the top left corner of the grid square (1/2 shift away from the edges!)
+
+MacroName Montage neg.stain C plain
+LongName Montage for neg.stain acquisition of plain carbon grids
 
 # 300-mesh grids: 58um square size
 # 400-mesh grids: 37um square size
 
 # Edit the following parameters:
 
-SetDirectory Z:\Grigory\folder
-x = 5               # montage X by Y patches
+SetDirectory \\EM-SUPPORT3\Spirit\Grigory\Folder
+x = 5               # montage X by Y patches: X-axis points downwards, Y-axis - rightwards
 y = 5
-Xsteps = 10         # Number of stage shift steps in X direction
-Ysteps = 10         # Number of stage shift steps in Y direction
-shift = 3           # 3um shift between montage areas (adjust to 2x [max image shift])
+Xsteps = 8          # Number of stage shift steps in X direction
+Ysteps = 8          # Number of stage shift steps in Y direction
+shift = 4           # 4um shift between montage areas (adjust to 2x [max image shift])
 delay = 5           # 5 sec delay after stage shift
 drift = 5           # 5A/s max drift (NOW NOT USED!)
 autofocus = 5       # autofocus every 5th image
-defLow = -0.6       # defocus min, in microns
-defHigh = -2.0      # defocus max
+defLow = -1.0       # defocus min, in microns
+defHigh = -2.5      # defocus max
 defStep = 0.2       # defocus step
 
-index = 1
+index = 1           # change this index for every gridsquare (new file will be montage_$index.mrc)
 
 ####################################
-Verbose 1
+Verbose 0
 FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
 TestShiftX = $shift * $Xsteps
 TestShiftY = $shift * $Ysteps
-MoveStage $TestShiftX -$TestShiftY
-Pause Test! Stage shifted to a final position. Are you still on a grid square? If not, cancel the script and change X/Y-steps of shift params!
-MoveStage -$TestShiftX $TestShiftY
-Delay 5 sec
+MoveStage $TestShiftX $TestShiftY
+Pause This is a test! Stage has shifted to a final position. Are you still on a grid square? If not, cancel the script and change X/Y-steps params!
+MoveStage -$TestShiftX -$TestShiftY
+Delay 10 sec
+
+#UserSetDirectory Choose the directory to save images
+
+# The following will acquire montage maps in a snake-like manner
+# from top left to bottom right corner of grid square
+
+Loop $Ysteps row
+    Loop $Xsteps
+        ResetClock
+        SetBeamBlank 1
+        OpenNewMontage $x $y montage_$index.mrc
+        SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
+        Delay $delay sec
+        CallFunction CycleTargetDefocus $defLow $defHigh $defStep
+        checkAutofocus = modulo $index $autofocus
+        If $checkAutofocus == 0
+            Echo ---> Autofocusing (every $autofocus images)...
+            ChangeFocus -1 # SerialEM mistakes when too close to focus
+            G
+            #CallFunction Drift $drift # wait for drift below threshold
+        Endif
+        Montage
+        CloseFile
+        ReportClock
+        Echo ---> Acquired montage # $index in $reportedValue1 seconds!
+        Echo ---------------------------------------
+        If modulo $row 2 == 0 # even row numbers --> shift in the opposite direction
+            MoveStage 0 -$shift
+        Else
+            MoveStage 0 $shift
+        Endif
+        index = $index + 1
+    EndLoop
+    MoveStage $shift 0 # goes to next Y-row
+EndLoop
+
 ####################################
 Function CycleTargetDefocus 3 0
 ## three variables, not string
@@ -42,7 +78,7 @@ TD_low = $argVal1
 TD_high = $argVal2
 step = $argVal3
 
-Echo --> Selecting defocus within [$TD_low - $TD_high] um range, step $step.
+Echo --> Selecting defocus within [min $TD_low, max $TD_high]um range, step $step.
 
 ## no editing below ##
 delta = -1 * $step
@@ -60,7 +96,8 @@ Endif
 
 ReportTargetDefocus 
 TargetDefocus = $repVal1
-Echo TargetDefocus = $repVal1 um
+Echo Target defocus = $repVal1 um
+SetDefocus $repVal1
 EndFunction
 ######################################
 Function Drift 1 0 
@@ -74,7 +111,7 @@ Echo ---> Measuring Drift ($argVal1 A/s max allowed)...
 #=============
 ## drift rate threshold
 crit = $argVal1
-shot = F
+shot = T
 interval = 15
 times = 10
 period = $interval + 1
@@ -104,43 +141,3 @@ Loop $times index
 EndLoop
 EndFunction
 ######################################
-
-#UserSetDirectory Choose the directory to save images
-ReportScreen
-If $reportedValue1 == 1
-    ScreenUp
-Endif
-
-# The following will acquire montage maps in a snake-like manner
-# from top left to bottom right corner of grid square
-
-Loop $Ysteps row
-    Loop $Xsteps
-        ResetClock
-        SetBeamBlank 1
-        OpenNewMontage $x $y m
-EndMacroontage_$index.mrc
-        SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
-        Delay $delay sec
-        CallFunction CycleTargetDefocus $defLow $defHigh $defStep
-        checkAutofocus = modulo $index $autofocus
-        If $remainderXY == 0
-            Echo ---> Autofocusing (every $autofocus images)...
-            ChangeFocus -1.5
-            G
-            #CallFunction Drift $drift # wait for drift below threshold
-        Endif
-        Montage
-        CloseFile
-        ReportClock
-        Echo ---> Acquired montage # $index in $reportedValue1 seconds!
-        Echo ---------------------------------------
-        If modulo $row 2 == 0 # even row numbers --> shift in the opposite direction
-            MoveStage -$shift 0
-        Else
-            MoveStage $shift 0
-        Endif
-        index = $index + 1
-    EndLoop
-    MoveStage 0 -$shift # goes to next Y-row
-EndLoop
