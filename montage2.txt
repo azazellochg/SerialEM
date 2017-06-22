@@ -1,0 +1,146 @@
+Macro 1
+MacroName Montage neg. stain C plain
+LongName Montage script for neg. stain acquisition of plain carbon grids
+# Check eucentricity (preferably at square center), calibrate Stage Shift and Autofocus
+# Run one montage manually to figure out max image shift for the current magnification
+# Start macro at the top left corner of the grid square!
+
+# 300-mesh grids: 58um square size
+# 400-mesh grids: 37um square size
+
+# Edit the following parameters:
+
+SetDirectory Z:\Grigory\folder
+x = 5               # montage X by Y patches
+y = 5
+Xsteps = 10         # Number of stage shift steps in X direction
+Ysteps = 10         # Number of stage shift steps in Y direction
+shift = 3           # 3um shift between montage areas (adjust to 2x [max image shift])
+delay = 5           # 5 sec delay after stage shift
+drift = 5           # 5A/s max drift (NOW NOT USED!)
+autofocus = 5       # autofocus every 5th image
+defLow = -0.6       # defocus min, in microns
+defHigh = -2.0      # defocus max
+defStep = 0.2       # defocus step
+
+index = 1
+
+####################################
+Verbose 1
+FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
+TestShiftX = $shift * $Xsteps
+TestShiftY = $shift * $Ysteps
+MoveStage $TestShiftX -$TestShiftY
+Pause Test! Stage shifted to a final position. Are you still on a grid square? If not, cancel the script and change X/Y-steps of shift params!
+MoveStage -$TestShiftX $TestShiftY
+Delay 5 sec
+####################################
+Function CycleTargetDefocus 3 0
+## three variables, not string
+
+TD_low = $argVal1
+TD_high = $argVal2
+step = $argVal3
+
+Echo --> Selecting defocus within [$TD_low - $TD_high] um range, step $step.
+
+## no editing below ##
+delta = -1 * $step
+
+# if the current TargetDefocus is outside of range, make it as TD_low.
+# Otherwise, increase a step of $delta
+
+SuppressReports
+ReportTargetDefocus
+If $reportedValue1 > $TD_low OR $reportedValue1 < $TD_high
+   SetTargetDefocus $TD_low
+Else 
+   IncTargetDefocus $delta
+Endif
+
+ReportTargetDefocus 
+TargetDefocus = $repVal1
+Echo TargetDefocus = $repVal1 um
+EndFunction
+######################################
+Function Drift 1 0 
+# A function to measure drift rate, if good, skip to the end of loop. 
+# Otherwise, exit execution -- i.e. skip the point. 
+
+Echo ---> Measuring Drift ($argVal1 A/s max allowed)...
+
+#=============
+# parameters 
+#=============
+## drift rate threshold
+crit = $argVal1
+shot = F
+interval = 15
+times = 10
+period = $interval + 1
+
+$shot
+Delay $interval
+Loop $times index
+   $shot
+   AlignTo B
+   ReportAlignShift
+   ClearAlignment
+   dx = $reportedValue3
+   dy = $reportedValue4
+   dist = sqrt $dx * $dx + $dy * $dy
+   rate = $dist / $period * 10
+   echo Estimated drift $rate A/sec
+
+   If $rate < $crit
+      echo Drift is below specified limit after $index trials, continue...      
+      break
+   Elseif  $index < $times
+      Delay $interval
+   Else
+      echo Drift has never got below $crit: Skipping ...
+      exit   
+   Endif
+EndLoop
+EndFunction
+######################################
+
+#UserSetDirectory Choose the directory to save images
+ReportScreen
+If $reportedValue1 == 1
+    ScreenUp
+Endif
+
+# The following will acquire montage maps in a snake-like manner
+# from top left to bottom right corner of grid square
+
+Loop $Ysteps row
+    Loop $Xsteps
+        ResetClock
+        SetBeamBlank 1
+        OpenNewMontage $x $y m
+EndMacroontage_$index.mrc
+        SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
+        Delay $delay sec
+        CallFunction CycleTargetDefocus $defLow $defHigh $defStep
+        checkAutofocus = modulo $index $autofocus
+        If $remainderXY == 0
+            Echo ---> Autofocusing (every $autofocus images)...
+            ChangeFocus -1.5
+            G
+            #CallFunction Drift $drift # wait for drift below threshold
+        Endif
+        Montage
+        CloseFile
+        ReportClock
+        Echo ---> Acquired montage # $index in $reportedValue1 seconds!
+        Echo ---------------------------------------
+        If modulo $row 2 == 0 # even row numbers --> shift in the opposite direction
+            MoveStage -$shift 0
+        Else
+            MoveStage $shift 0
+        Endif
+        index = $index + 1
+    EndLoop
+    MoveStage 0 -$shift # goes to next Y-row
+EndLoop
