@@ -9,3 +9,5 @@ Useful links:
 - https://wiki-bsse.ethz.ch/display/CINA/SerialEM+LowDose+Operation+in+C-CINA
 - https://serialemscripts.nexperion.net/
 - https://www.youtube.com/playlist?list=PLGggUwWmzvs-DV4jCapSl5XQ-hpAXtzMb
+- http://bio3d.colorado.edu/SerialEM/hlp/html/about_macros.htm
+- http://bio3d.colorado.edu/SerialEM/hlp/html/macro_commands.htm
