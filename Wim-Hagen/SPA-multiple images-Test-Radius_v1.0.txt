@@ -1,0 +1,56 @@
+MacroName SPAK2fastTestRadius
+# Workout radius for multiple images in hole
+# Buffer P is expected to have refference hole image from Low Dose View
+# Macro takes Preview images around the hole edge to work out radius
+# Watch for hole edges and adjust radius
+# Wim Hagen, EMBL Heidelberg 20170309
+# Credits to Chen Xu & Henning Stahlberg group
+# 1) Setup Low Dose.
+# 2) Buffer P should have a Low Dose View hole image.
+# 3) Go to a hole.
+# 4) Run macro.
+# 5) Tweak Radius as needed.
+
+maxholeshift        = 100        # max beam/image shift after hole centering in nanometers
+NumberShots      = 6	        # Number of shots in one hole
+IS_RAD 	            = 0.75      # Radius in micrometer of off-center ImageShift displacement
+
+####### Align to hole #######
+
+echo ===> Running align to hole ...
+
+V
+AlignTo P
+ReportAlignShift
+echo hole shift 1 $RepVal5 $RepVal6
+holeshift = sqrt $RepVal5 * $RepVal5 + $RepVal6 * $RepVal6
+
+if $holeshift > $maxholeshift
+   ResetImageShift
+   V
+   AlignTo P
+   ReportAlignShift
+   echo hole shift 2 $RepVal5 $RepVal6
+endif
+
+####### Acquire images #######
+
+GoToLowDoseArea R
+ReportImageShift
+isux = $RepVal1
+isuy = $RepVal2
+
+Loop $NumberShots icount
+   IS_ANGLE = ( $icount - 1 ) * 360 / $NumberShots
+   IS_X = $IS_RAD * sin ( $IS_ANGLE )
+   IS_Y = $IS_RAD * cos ( $IS_ANGLE )
+   ImageShiftByMicrons $IS_X $IS_Y
+   Delay 1 sec
+   L
+   SetImageShift  $isux $isuy
+endloop
+
+ResetImageShift 
+
+echo ===> Done ...
+echo ====================================================
