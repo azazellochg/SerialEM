@@ -41,6 +41,9 @@ Delay 10 sec
 # The following will acquire montage maps in a snake-like manner
 # from top left to bottom right corner of grid square
 
+SetTargetDefocus $defLow
+Autofocus
+
 Loop $Ysteps row
     Loop $Xsteps
         ResetClock
@@ -89,16 +92,19 @@ delta = -1 * $step
 
 SuppressReports
 ReportTargetDefocus
-If $reportedValue1 > $TD_low OR $reportedValue1 < $TD_high
+oldDef = $reportedValue1
+If $oldDef > $TD_low OR $oldDef < $TD_high
    SetTargetDefocus $TD_low
 Else 
    IncTargetDefocus $delta
 Endif
 
 ReportTargetDefocus 
-TargetDefocus = $repVal1
+newDef = $repVal1
+diff = $newDef - $oldDef
+ChangeFocus $diff
 Echo Target defocus = $repVal1 um
-SetDefocus $repVal1
+
 EndFunction
 ###################################
 Function Drift 1 0 
