@@ -1,12 +1,13 @@
-# Check eucentricity (preferably at square center), calibrate Image Shift and Autofocus
-# Run one montage manually to figure out max image shift for the current magnification
-# Start macro at the top left corner of the grid square (1/2 shift away from the edges!)
-
-MacroName Montage neg.stain C plain
+MacroName Montage neg.stain
 LongName Montage for neg.stain acquisition of plain carbon grids
+# Grigory Sharov, MRC-LMB 22/06/2017
 
-# 300-mesh grids: 58um square size
-# 400-mesh grids: 37um square size
+# Preparation:
+# 1) Check eucentricity, calibrate Image Shift and Autofocus
+# 2) In Montage Control Panel tick only "Show Overview at End"
+# 3) Check Record & Trial (for drift estimation) params
+# 4) Run one montage manually to figure out max image shift for the current magnification
+# 5) Start macro at the top left corner of the grid square (1/2 shift away from the edges!)
 
 ###################################
 # Edit the following parameters:
@@ -18,13 +19,13 @@ Xsteps = 8          # Number of stage shift steps in X direction
 Ysteps = 8          # Number of stage shift steps in Y direction
 shift = 4           # 4um shift between montage areas (adjust to 2x [max image shift])
 delay = 5           # 5 sec delay after stage shift
-drift = 5           # 5A/s max drift (NOW NOT USED!)
+drift = 5           # 5A/s max drift
 autofocus = 5       # autofocus every 5th image
 defLow = -1.0       # defocus min, in microns
 defHigh = -2.5      # defocus max
 defStep = 0.2       # defocus step
 
-index = 1           # change this index for every gridsquare (new file will be montage_$index.mrc)
+indexImg = 1        # change this index for every gridsquare (new file will be montage_$index.mrc)
 
 ###################################
 Verbose 0
@@ -48,7 +49,7 @@ Loop $Ysteps row
     Loop $Xsteps
         ResetClock
         SetBeamBlank 1
-        OpenNewMontage $x $y montage_$index.mrc
+        OpenNewMontage $x $y montage_$indexImg.mrc
         SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
         Delay $delay sec
         CallFunction CycleTargetDefocus $defLow $defHigh $defStep
@@ -57,7 +58,7 @@ Loop $Ysteps row
             Echo ---> Autofocusing (every $autofocus images)...
             ChangeFocus -1 # SerialEM mistakes when too close to focus
             Autofocus
-            #CallFunction Drift $drift # wait for drift below threshold
+            CallFunction Drift $drift # wait for drift below threshold
         Endif
         Montage
         CloseFile
@@ -118,7 +119,7 @@ Echo ---> Measuring Drift ($argVal1 A/s max allowed)...
 ## drift rate threshold
 crit = $argVal1
 shot = T
-interval = 15
+interval = 3
 times = 10
 period = $interval + 1
 
