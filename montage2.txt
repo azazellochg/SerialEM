@@ -32,12 +32,19 @@ Verbose 0
 FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
 TestShiftX = $shift * $Xsteps
 TestShiftY = $shift * $Ysteps
-MoveStage $TestShiftX $TestShiftY
-Pause This is a test! Stage has shifted to a final position. Are you still on a grid square? If not, cancel the script and change X/Y-steps params!
-MoveStage -$TestShiftX -$TestShiftY
-Delay 10 sec
-
-#UserSetDirectory Choose the directory to save images
+YesNoBox Proceed with a test stage shift (to final X, then final Y-position)? Look at the screen to see if you are still on a gridsquare.
+If $ReportedValue1 == 1
+    ScreenDown
+    MoveStage $TestShiftX
+    Delay 3 sec
+    MoveStage $TestShiftY
+    YesNoBox Are you still on a grid square? If not, cancel the script and change X/Y-steps params!
+    Echo Moving stage back to starting position...
+    MoveStage -$TestShiftX -$TestShiftY
+    If $ReportedValue1 == 1
+        Delay 10 sec
+    Else
+        Exit
 
 # The following will acquire montage maps in a snake-like manner
 # from top left to bottom right corner of grid square
@@ -53,24 +60,24 @@ Loop $Ysteps row
         SetMontageParams 0 204 204 2048 2048 1 # No stage move, overlap x=y=206, frame size x=y=2048, skip correlations
         Delay $delay sec
         CallFunction CycleTargetDefocus $defLow $defHigh $defStep
-        checkAutofocus = modulo $index $autofocus
+        checkAutofocus = modulo $indexImg $autofocus
         If $checkAutofocus == 0
             Echo ---> Autofocusing (every $autofocus images)...
-            ChangeFocus -1 # SerialEM mistakes when too close to focus
+            ChangeFocus -0.5 # SerialEM mistakes when too close to focus
             Autofocus
             CallFunction Drift $drift # wait for drift below threshold
         Endif
         Montage
         CloseFile
         ReportClock
-        Echo ---> Acquired montage # $index in $reportedValue1 seconds!
+        Echo ---> Acquired montage # $indexImg in $reportedValue1 seconds!
         Echo ---------------------------------------
         If modulo $row 2 == 0 # even row numbers --> shift in the opposite direction
             MoveStage 0 -$shift
         Else
             MoveStage 0 $shift
         Endif
-        index = $index + 1
+        indexImg = $indexImg + 1
     EndLoop
     MoveStage $shift 0 # goes to next Y-row
 EndLoop
