@@ -1,6 +1,6 @@
 MacroName Montage neg.stain
 LongName Montage for neg.stain acquisition of plain carbon grids
-# Grigory Sharov, MRC-LMB 22/06/2017
+# Grigory Sharov, MRC-LMB 04/08/2017
 
 # Preparation:
 # 1) Check eucentricity, calibrate Image Shift and Autofocus
@@ -17,10 +17,10 @@ x = 5               # montage X by Y patches: X-axis points downwards, Y-axis - 
 y = 5
 Xsteps = 8          # Number of stage shift steps in X direction
 Ysteps = 8          # Number of stage shift steps in Y direction
-shift = 4           # 4um shift between montage areas (adjust to 2x [max image shift])
-delay = 5           # 5 sec delay after stage shift
-drift = 5           # 5A/s max drift
-autofocus = 5       # autofocus every 5th image
+shift = 4           # X um shift between montage areas (adjust to 2x [max image shift])
+delay = 5           # X sec delay after stage shift
+drift = 5           # X A/s max drift
+autofocus = 5       # autofocus every X-th image
 defLow = -1.0       # defocus min, in microns
 defHigh = -2.5      # defocus max
 defStep = 0.2       # defocus step
@@ -30,26 +30,28 @@ indexImg = 1        # change this index for every gridsquare (new file will be m
 ###################################
 Verbose 0
 FocusChangeLimits -5 5       #  If focus changes too much, abort and use original
-TestShiftX = $shift * $Xsteps
-TestShiftY = $shift * $Ysteps
-YesNoBox Proceed with a test stage shift (to final X, then final Y-position)? Look at the screen to see if you are still on a gridsquare.
-If $ReportedValue1 == 1
+
+YesNoBox Do you want to check the number of steps for stage shift (if you are still on the square at the end of acquisition)?
+If $reportedValue1 == 1
+    TestShiftX = $shift * $Xsteps
+    TestShiftY = $shift * $Ysteps
     ScreenDown
-    MoveStage $TestShiftX
-    Delay 3 sec
-    MoveStage $TestShiftY
-    YesNoBox Are you still on a grid square? If not, cancel the script and change X/Y-steps params!
-    Echo Moving stage back to starting position...
+    MoveStage $TestShiftX 0
+    Delay 2 sec
+    MoveStage 0 $TestShiftY
+    YesNoBox Stage was shifted to a final position. Are you still on a grid square? If not, stop the script and change X/Y-steps of shift params!
     MoveStage -$TestShiftX -$TestShiftY
-    If $ReportedValue1 == 1
-        Delay 10 sec
+    If $reportedValue1 == 1
+        Delay $delay sec
     Else
         Exit
+    Endif
+Endif
 
 # The following will acquire montage maps in a snake-like manner
 # from top left to bottom right corner of grid square
-
 SetTargetDefocus $defLow
+ChangeFocus -0.5
 Autofocus
 
 Loop $Ysteps row
@@ -82,17 +84,14 @@ Loop $Ysteps row
     MoveStage $shift 0 # goes to next Y-row
 EndLoop
 
-###################################
+####################################
 Function CycleTargetDefocus 3 0
 ## three variables, not string
 
 TD_low = $argVal1
 TD_high = $argVal2
 step = $argVal3
-
-Echo --> Selecting defocus within [min $TD_low, max $TD_high]um range, step $step.
-
-## no editing below ##
+Echo --> Selecting defocus from range: $TD_low um to $TD_high um with $step um step.
 delta = -1 * $step
 
 # if the current TargetDefocus is outside of range, make it as TD_low.
@@ -101,6 +100,7 @@ delta = -1 * $step
 SuppressReports
 ReportTargetDefocus
 oldDef = $reportedValue1
+
 If $oldDef > $TD_low OR $oldDef < $TD_high
    SetTargetDefocus $TD_low
 Else 
@@ -112,18 +112,13 @@ newDef = $repVal1
 diff = $newDef - $oldDef
 ChangeFocus $diff
 Echo Target defocus = $repVal1 um
-
 EndFunction
-###################################
+######################################
 Function Drift 1 0 
 # A function to measure drift rate, if good, skip to the end of loop. 
 # Otherwise, exit execution -- i.e. skip the point. 
 
 Echo ---> Measuring Drift ($argVal1 A/s max allowed)...
-
-# parameters 
-#=============
-## drift rate threshold
 crit = $argVal1
 shot = T
 interval = 3
@@ -144,14 +139,14 @@ Loop $times index
    echo Estimated drift = $rate A/sec
 
    If $rate < $crit
-      echo Drift is below specified limit after $index trials, continue...      
+      echo Drift is below $crit after $index trials, continuing...      
       break
    Elseif  $index < $times
       Delay $interval
    Else
       echo Drift has never got below $crit: Skipping ...
-      exit   
+      Exit   
    Endif
 EndLoop
 EndFunction
-###################################
+######################################
