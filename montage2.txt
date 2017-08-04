@@ -29,7 +29,7 @@ indexImg = 1        # change this index for every gridsquare (new file will be m
 
 ###################################
 Verbose 0
-FocusChangeLimits -10 10       #  If focus changes too much, abort and use original
+FocusChangeLimits -5 5       #  If focus changes too much, abort and use original
 TestShiftX = $shift * $Xsteps
 TestShiftY = $shift * $Ysteps
 YesNoBox Proceed with a test stage shift (to final X, then final Y-position)? Look at the screen to see if you are still on a gridsquare.
