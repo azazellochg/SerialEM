@@ -1,13 +1,15 @@
 MacroName Montage neg.stain
-LongName Montage for neg.stain acquisition of plain carbon grids
-# Grigory Sharov, MRC-LMB 04/08/2017
+LongName Montage neg.stain
+# Grigory Sharov, MRC-LMB 19/01/2018
 
 # Preparation:
-# 1) Check eucentricity, calibrate Image Shift and Autofocus
-# 2) In Montage Control Panel tick only "Show Overview at End"
-# 3) Check Record & Trial (for drift estimation) params
-# 4) Run one montage manually to figure out max image shift for the current magnification
-# 5) Start macro at the top left corner of the grid square (1/2 shift away from the edges!)
+# 1) Check eucentricity, switch on Administrator mode in Calibration menu. Calibrate Image Shift and Autofocus
+# (set focus range to 10um). Calibrations -> Save.
+# 2) In Montage Control Panel tick "Show Overview at End", "Align pieces".
+# 3) Check Record & Trial (for drift estimation) params.
+# 4) Check that SetMontageParams command uses correct camera size (e.g. 2048 or 4096px) and overlap
+# 5) Run one montage manually to figure out max image shift for the current magnification.
+# 6) Start macro at the top left corner of the grid square (1/2 shift away from the edges!).
 
 ###################################
 # Edit the following parameters:
@@ -39,7 +41,7 @@ If $reportedValue1 == 1
     MoveStage 0 $TestShiftY
     Delay 2 sec
     MoveStage $TestShiftX 0
-    Dealy 2 sec
+    Delay 2 sec
     MoveStage 0 -$TestShiftY
     YesNoBox Was the stage always ON a gridsquare? If not, click No and change X/Y-steps parameters in the script!
     MoveStage -$TestShiftX 0
@@ -67,9 +69,11 @@ Loop $Ysteps row
         checkAutofocus = modulo $indexImg $autofocus
         If $checkAutofocus == 0
             Echo ---> Autofocusing (every $autofocus images)...
+            ImageShiftByMicrons -$shift 0 1 # go to off-target area for focusing
             ChangeFocus -0.5 # SerialEM mistakes when too close to focus
             Autofocus
             CallFunction Drift $drift # wait for drift below threshold
+            ImageShiftByMicrons $shift 0 1
         Endif
         Montage
         CloseFile
@@ -100,20 +104,16 @@ delta = -1 * $step
 # Otherwise, increase a step of $delta
 
 SuppressReports
-ReportTargetDefocus
-oldDef = $reportedValue1
-
-If $oldDef > $TD_low OR $oldDef < $TD_high
+ReportTargetDefocus 
+If $reportedValue1 > $TD_low OR $reportedValue1 < $TD_high
    SetTargetDefocus $TD_low
 Else 
    IncTargetDefocus $delta
 Endif
 
 ReportTargetDefocus 
-newDef = $repVal1
-diff = $newDef - $oldDef
-ChangeFocus $diff
-Echo Target defocus = $repVal1 um
+TargetDefocus = $repVal1
+Echo TargetDefocus = $repVal1 um
 EndFunction
 ######################################
 Function Drift 1 0 
