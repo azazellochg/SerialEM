@@ -1,0 +1,53 @@
+# (C) Nexperion e.U. - Solutions for Electron Microscopy 2018
+# https://www.nexperion.net
+# Last update February 26, 2018
+# Requires SerialEM >= 3.6.x
+
+# Parameters not covered in this version of the script include: JEOL Alpha, diffraction/imaging mode, piezo drive, filter, camera settings (inserted/retracted)
+
+ScriptName RestoreScopeState
+SuppressReports
+
+echo
+echo RESTORING MICROSCOPE STATE:
+
+IsVariableDefined _N3SFlag
+if ( $ReportedValue1 == 0)
+  echo No microscope state saved, cancelled.
+  echo
+  Exit
+EndIf
+
+ScreenDown 
+
+echo Restoring illumination ...
+SetBeamTilt $_N3SBeamTiltX $_N3SBeamTiltY
+SetProbeMode $_N3SProbeMode
+SetSpotSize $_N3SSpotSize
+SetPercentC2 $_N3SPercentC2
+SetBeamShift $_N3SBeamShiftX $_N3SBeamShiftY
+
+echo Restoring image shift ...
+SetImageShift $_N3SImageShiftX $_N3SImageShiftY
+
+echo Restoring focus ...
+SetAbsoluteFocus $_N3SAbsoluteFocus
+
+echo Restoring magnification ...
+SetMag $_N3SMag
+
+YesNoBox Restore stage position?
+If ( $ReportedValue1 == 1) 
+  echo Restoring stage position ...
+  MoveStageTo $_N3SStageX $_N3SStageY $_N3SStageZ
+  TiltTo $_N3SStageA
+EndIf
+
+NormalizeAllLenses
+SetBeamBlank 0
+ReportColumnOrGunValve 
+if ( $ReportedValue1 != 1 )
+  Pause Column valves are not open!
+endIf
+
+echo DONE.
