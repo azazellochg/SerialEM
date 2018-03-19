@@ -1,0 +1,23 @@
+ScriptName setInt
+#20170629 setInt M. Jason de la Cruz
+
+# Copyright (c) 2017, Howard Hughes Medical Institute
+#
+# License ISC: Internet Software Consortium license,
+# http://opensource.org/licenses/ISC
+#
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# INSTRUCTIONS: Modify settings in section below.  Set “setIntensityCmd” to
+#               either “SetIlluminatedArea” for FEI Titan series or 
+#               “SetPercentC2” for all other microscopes.
+#               Refer to log for console output.
+
+setIntensityCmd options: SetPercentC2, SetIlluminatedArea
+#================================== SETTINGS ===================================
+setIntensityCmd = SetPercentC2
+setIntensity = 102.345
+#===============================================================================
+
+$setIntensityCmd $setIntensity

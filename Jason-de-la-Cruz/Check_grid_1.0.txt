@@ -1,0 +1,94 @@
+ScriptName chkGrid
+#20170629 chkGrid M. Jason de la Cruz
+
+# Copyright (c) 2017, Howard Hughes Medical Institute
+#
+# License ISC: Internet Software Consortium license,
+# http://opensource.org/licenses/ISC
+#
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# INSTRUCTIONS: Modify settings in section below.  Set "setIntensityCmd" to
+#               either "SetIlluminatedArea" for FEI Titan series or 
+#               "SetPercentC2" for all other microscopes.  Decide on condenser
+#               beam illumination (aperture, spot size); enter desired spot
+#               size below.  Then set "lowMag" to lowest mag with unobstructed
+#               view of TEM grid (i.e., the mag you use for whole-grid atlas),
+#               adjust intensity for optimum signal, center beam shift, then
+#               record intensity value in "lowMagIntensity".
+#               When ready to start, open file to save autodoc metadata (with
+#               .mdoc or .idoc) then run the script.  Close the file when done.
+
+# Please check that beam is centered in low mag before continuing.
+# Ensure all checkboxes in "Script > Controls..." dialog are unchecked to avoid
+# "low counts" errors.
+#================================== SETTINGS ===================================
+setIntensityCmd = SetPercentC2
+spotSize = 10
+lowMag = 120
+lowMagIntensity = 102.345
+#===============================================================================
+
+echo ===> Running chkGrid ...
+echo ===> Setting up scope
+StopContinuous
+SetExposure R 1
+SetBinning R 1
+SetContinuous R 0
+ScreenUp
+SetColumnOrGunValve 1
+SetSpotSize $spotSize
+reportspotsize
+SetMag $lowMag
+echo Waiting for lens stabilization
+Delay 2 sec
+SetPercentC2 $lowMagIntensity
+
+echo ===> Imaging Quadrant 1
+MoveStageTo 400 400 0
+ReportStageXYZ
+Delay 1 sec
+R
+Delay 1 sec
+S
+Delay 1 sec
+
+echo ===> Imaging Quadrant 2
+MoveStageTo 400 -400 0
+ReportStageXYZ
+Delay 1 sec
+R
+Delay 1 sec
+S
+Delay 1 sec
+
+echo ===> Imaging Quadrant 3
+MoveStageTo -400 -400 0
+ReportStageXYZ
+Delay 1 sec
+R
+Delay 1 sec
+S
+Delay 1 sec
+
+echo ===> Imaging Quadrant 4
+MoveStageTo -400 400 0
+ReportStageXYZ
+Delay 1 sec
+R
+Delay 1 sec
+S
+Delay 1 sec
+
+echo ===> Imaging Center
+MoveStageTo 0 0 0
+ReportStageXYZ
+Delay 1 sec
+R
+Delay 1 sec
+S
+Delay 1 sec
+
+echo ===> Scope standby
+SetColumnOrGunValve 0
