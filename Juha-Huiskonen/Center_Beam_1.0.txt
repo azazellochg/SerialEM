@@ -1,0 +1,5 @@
+MacroName CenterBeam
+
+T
+CenterBeamFromImage
+T
