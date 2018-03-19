@@ -2,7 +2,6 @@
 # https://www.nexperion.net
 # Last update March 15, 2017
 # Requires SerialEM >= 3.6.0
-# Tests the beam intensity calibration at a given spot size, walking from high intensities to low intensities comparing set vs. actual values
 
 ScriptName BeamIntCalTest
 SuppressReports 
