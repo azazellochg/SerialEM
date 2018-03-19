@@ -1,0 +1,20 @@
+MacroName Acquire
+
+echo *** ACQUIRING IMAGE ***
+
+echo *** Centering the acquisition area ***
+Call CenterDetail
+
+echo *** Centering the beam ***
+Call CenterBeam
+
+echo *** Settling drift ***
+Call Drift
+
+echo *** Acquiring a focus pair ***
+Call FocusPair
+V
+
+echo *** Changing target defocus ***
+IncTargetDefocus 0.02
+

@@ -1,0 +1,23 @@
+MacroName AutoAcquire
+
+echo *** ACQUIRING IMAGE ***
+
+echo *** Centering the acquisition area ***
+Loop 2
+  View 
+  AlignTo J
+  ShiftItemsByAlignment
+  ResetImageShift
+EndLoop
+
+echo *** Centering the beam ***
+Call CenterBeam
+
+echo *** Settling drift ***
+Call Drift
+
+echo *** Acquiring a focus pair ***
+Call FocusPair
+
+echo *** Changing target defocus ***
+IncTargetDefocus 0.01

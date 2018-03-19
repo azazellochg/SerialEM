@@ -1,0 +1,38 @@
+MacroName Drift
+
+# Adjust $interval so that delay is 20 s.
+# This depends on your camera and imaging parameters such as binning
+interval = 16.75
+times = 50
+crit = 40
+Delay $interval
+SuppressReports
+ChangeFocus -6
+F
+ResetClock
+Delay $interval
+Loop $times index
+   F
+   ReportClock
+   echo Total delay $reportedValue1 s
+   AlignTo B
+   ReportAlignShift
+   ClearAlignment
+   dx = $reportedValue3
+   dy = $reportedValue4
+   dist = sqrt $dx * $dx + $dy * $dy
+   dist = $dist * 10
+   echo Drift rate = $dist A / 20 s
+   if $dist < $crit
+      echo Drift is below threshold of $crit A / 20 s after trying $index time(s)
+      break
+   endif
+   if $index < $times
+      ResetClock
+      Delay $interval
+   else
+      Echo Drift is ABOVE threshold of $crit A / 20 s after trying $index time(s)
+   endif
+EndLoop
+ChangeFocus 6
+

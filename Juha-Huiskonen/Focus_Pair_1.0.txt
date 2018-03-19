@@ -1,0 +1,20 @@
+MacroName FocusPair
+
+AutoFocus
+AutoFocus
+
+echo Taking a pre-exposure using Preview
+Preview
+CenterBeamFromImage
+Delay 2
+
+echo Taking a close-to-focus exposure using Record
+Record
+Save
+
+echo Taking a further-from-focus exposure using Record
+ChangeFocus -3
+Record
+Save
+ChangeFocus 3
+

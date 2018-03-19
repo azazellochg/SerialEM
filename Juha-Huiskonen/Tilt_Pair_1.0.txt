@@ -1,0 +1,14 @@
+MacroName TiltPair
+AutoFocus
+Record
+Save
+View
+TiltTo -5
+View
+AlignTo B
+AutoFocus
+Record
+Save
+TiltTo 0
+ResetImageShift
+View
