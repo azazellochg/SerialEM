@@ -72,7 +72,10 @@ Loop $Ysteps row
             ImageShiftByMicrons -$shift 0 1 # go to off-target area for focusing
             ChangeFocus -0.5 # SerialEM mistakes when too close to focus
             Autofocus
-            CallFunction Drift $drift # wait for drift below threshold
+            ReportFocusDrift
+            If $reportedValue1 * 10 > $drift # autofocus drift is in nm
+                CallFunction Drift $drift # wait for drift below threshold
+            Endif
             ImageShiftByMicrons $shift 0 1
         Endif
         Montage
