@@ -1,0 +1,114 @@
+MacroName NewMontNegSt
+LongName NewMontNegSt
+# Grigory Sharov, MRC-LMB 18/08/2018
+
+# Prerequisites:
+# - image shift calibrated at target mag
+# - autofocus calibrated at target mag
+
+###################################
+# Edit the following parameters:
+
+SetDirectory Z:\Gregory\Folder
+x = 5               # montage X by Y patches: X-axis points downwards, Y-axis - rightwards
+y = 5
+delay = 5           # X sec delay after stage shift
+drift = 5           # X A/s max drift
+drifttimes = 5      # measure drift X times, then give up
+autofocus = 5       # autofocus every X-th image
+defLow = -1.4       # defocus min, in microns
+defHigh = -2.4      # defocus max
+defStep = 0.2       # defocus step
+debug = 0           # debug mode, if = 1 -> do not suppress reports
+
+
+######### DO NOT EDIT ANYTHING BELOW ##########
+ProgramTimeStamps
+echo Started macro NewMontNegStain!
+echo >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+NoMessageBoxOnError 1
+ErrorsToLog 1
+if $debug == 0
+    SuppressReports
+    Verbose 0
+else
+    Verbose 1
+endif
+
+ReportMinuteTime
+macrostarttime = $RepVal1
+
+FocusChangeLimits -5 5       #  If focus changes too much, abort and use original
+SetTargetDefocus $defLow
+
+ReportNavItem
+OpenNewMontage $x $y montage_$navLabel.mrc
+SetMontageParams 0 102 102 2048 2048 1 # No stage move, overlap x=y=102 (10%), frame size x=y=2048, skip correlations
+Delay $delay sec
+CallFunction CycleTargetDefocus
+
+checkAutofocus = modulo $navAcqIndex $autofocus
+If $checkAutofocus == 0
+    Echo ---> Autofocusing (every $autofocus montages)...
+    #ImageShiftByMicrons -$shift 0 1 # go to off-target area for focusing
+    ChangeFocus -0.5 # SerialEM mistakes when too close to focus
+    Autofocus
+    ReportFocusDrift
+    If $reportedValue1 * 10 > $drift # autofocus drift is in nm
+        CallFunction MeasureDrift # wait for drift below threshold
+    Endif
+    #ImageShiftByMicrons $shift 0 1
+Endif
+
+Montage
+CloseFile
+
+ReportMinuteTime
+totaltime = $RepVal1 - $macrostarttime
+echo ---> Acquired montage # $index (item $navLabel) in $totaltime minutes!
+echo xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+####################################
+Function CycleTargetDefocus
+   bigstep = $TD_low - $TD_high 
+   ReportTargetDefocus
+   TD = $reportedValue1
+
+   if $TD > $defLow
+      diff = $TD - $defLow
+      IncTargetDefocus -$diff
+   elseif $TD > $defHigh 
+      IncTargetDefocus -$defStep
+   else
+      IncTargetDefocus $bigstep
+   endif
+endfunction
+######################################
+Function MeasureDrift
+Loop $drifttimes index
+    ReportClock
+    elapsedtime = $RepVal1
+    ResetClock
+    T
+    AlignTo B
+    ReportAlignShift
+    dx = $reportedValue3
+    dy = $reportedValue4
+    dist = sqrt $dx * $dx + $dy * $dy
+    rate = 10 * ( $dist / $elapsedtime  )
+    echo Measured drift $rate A/sec
+
+    If $rate < $drift
+        echo --- drift is low enough after $index trials...
+        break
+    Elseif  $index < $drifttimes
+        echo --- drift too high, another try in $delay sec...
+        Delay $delay
+    Else
+        echo --- drift never got below $drift A: skipping...
+        break  
+    Endif
+EndLoop
+endfunction
+######################################
