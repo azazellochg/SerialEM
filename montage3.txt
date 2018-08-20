@@ -5,6 +5,8 @@ LongName NewMontNegSt
 # Prerequisites:
 # - image shift calibrated at target mag
 # - autofocus calibrated at target mag
+# - autofocus done before starting acquiring at points
+# - change SetMontageParams according to your camera size
 
 ###################################
 # Edit the following parameters:
@@ -46,7 +48,7 @@ ReportNavItem
 OpenNewMontage $x $y montage_$navLabel.mrc
 SetMontageParams 0 102 102 2048 2048 1 # No stage move, overlap x=y=102 (10%), frame size x=y=2048, skip correlations
 Delay $delay sec
-CallFunction CycleTargetDefocus
+CallFunction CycleTargetDefocus2
 
 checkAutofocus = modulo $navAcqIndex $autofocus
 If $checkAutofocus == 0
@@ -66,12 +68,12 @@ CloseFile
 
 ReportMinuteTime
 totaltime = $RepVal1 - $macrostarttime
-echo ---> Acquired montage # $index (item $navLabel) in $totaltime minutes!
+echo ---> Acquired montage $navLabel in $totaltime minutes!
 echo xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ####################################
-Function CycleTargetDefocus
-   bigstep = $TD_low - $TD_high 
+Function CycleTargetDefocus2
+   bigstep = $defLow - $defHigh 
    ReportTargetDefocus
    TD = $reportedValue1
 
