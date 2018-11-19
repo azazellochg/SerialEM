@@ -2,7 +2,7 @@ MacroName GrpDoseSymTomo
 
 # Less conservative dose-symmetric tilt scheme for tomography 
 # Tilt, track-before, drift, autofocus, image, track-after.
-# EMBL Heidelberg 2016, Wim J.H.Hagen
+# EMBL Heidelberg 2016, Wim J. H.Hagen
 # Modified by Dustin Morado, 2018
 # Modified by Grigory Sharov, Nov 2018
 #
@@ -16,20 +16,16 @@ MacroName GrpDoseSymTomo
 # Roll buffers A -> H
 
 ########## SETTINGS ########## 
-
 step            = 3     # tilt step
 maxtilt         = 60    # maximum +/- tilt angle
 group           = 2     # number of tilt steps per group
-Tiltbacklash    = -1    # negative tilts can be backlashed by this
-wait            = 0     # wait after tilt in sec 
+Tiltbacklash    = -3    # negative tilts can be backlashed by this 
 TD_low          = -2    # low defocus microns
 TD_high         = -4    # high defocus microns
 delta           = 0.25  # defocus step microns
 driftcrit       = 7     # max drift in Angstroms/s
 drifttimes      = 5     # N times to repeat drift measurement
-
 debug           = 0     # debug mode, do not suppress reports
-
 ########## END SETTINGS ########## 
 
 ProgramTimeStamps
@@ -64,8 +60,8 @@ echo Check if dark reference needs updating...
 UpdateHWDarkRef  3 #every three hours seems ok
 
 # Get eucentric
-echo Doing Eucentricity both...
-Eucentricity 3
+echo Doing Eucentricity fine...
+Eucentricity 2
 UpdateItemZ
 
 # realign to item
@@ -87,14 +83,14 @@ CallFunction TiltZero
 
 # loop back and forth in groups
 loop $branchesteps
-	loop $group
-	        plustilt = $plustilt + $step
-	        CallFunction TiltPlus
-	endloop	
-	loop $group
-	        mintilt = $mintilt - $step
-                CallFunction TiltMinus
-	endloop
+    loop $group
+            plustilt = $plustilt + $step
+            CallFunction TiltPlus
+    endloop
+    loop $group
+            mintilt = $mintilt - $step
+            CallFunction TiltMinus
+    endloop
 endLoop
 
 # finish
@@ -109,157 +105,154 @@ echo xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 function TiltZero
     echo Doing untilted image...
-	ReportStageXYZ
-	StageX = $ReportedValue1
-	StageY = $ReportedValue2
+    ReportStageXYZ
+    StageX = $ReportedValue1
+    StageY = $ReportedValue2
 
-	# track
+    # track
     CallFunction CheckAutoFill
-    GoToLowDoseArea R
+    GoToLowDoseArea T
     ResetClock
-    echo Taking Trial image for tracking...
-	T
-	Copy A K
-	Copy A L
-	
-	# Measure focus and drift
-	ReportTargetDefocus
-	echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
-	Delay $wait
-	CallFunction DriftAndFocus $driftcrit $drifttimes
 
-	ReportDefocus
-	focusplus = $RepVal1
-	focusmin = $RepVal1
+    # Measure focus and drift
+    ReportTargetDefocus
+    echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
+    CallFunction DriftAndFocus $driftcrit $drifttimes
 
-	# Record
+    ReportDefocus
+    focusplus = $RepVal1
+    focusmin = $RepVal1
+
+    echo Copying Focus image for tracking...
+    Copy A K
+    Copy A L
+
+    # Record
     CallFunction CheckAutoFill
     echo Taking Record...
     #EarlyReturnNextShot -1
-	R
-	S
-	Copy A M
-	Copy A N
+    R
+    S
+    Copy A M
+    Copy A N
 
-	ReportImageShift
-	ISxplus = $RepVal1
-	ISyplus = $RepVal2
-	ISxminus = $RepVal1
-	ISyminus = $RepVal2
+    ReportImageShift
+    ISxplus = $RepVal1
+    ISyplus = $RepVal2
+    ISxminus = $RepVal1
+    ISyminus = $RepVal2
 
-	# Tracking after
+    # Tracking after
     CallFunction CheckAutoFill
     echo Tracking after: item $navLabel, tilt 0, img shifts: $ISxplus $ISyplus, defocus $focusplus
-	T
-	Copy A K
-	Copy A L
+    T
+    Copy A K
+    Copy A L
 endfunction
 
 function TiltPlus
     echo Tilting to $plustilt...
-	TiltTo $plustilt
-	MoveStageTo $StageX $StageY
-	
-	CallFunction CheckTiltAngle $plustilt
+    TiltTo $plustilt
+    MoveStageTo $StageX $StageY
 
-	# set to previous used shift/focus
-	GoToLowDoseArea R
-	SetDefocus $focusplus
-	SetImageShift  $ISxplus $ISyplus
+    CallFunction CheckTiltAngle $plustilt
 
-	# Track
+    # set to previous used shift/focus
+    GoToLowDoseArea R
+    SetDefocus $focusplus
+    SetImageShift  $ISxplus $ISyplus
+
+    # Track
     CallFunction CheckAutoFill
     ResetClock
-	echo Taking Trial image for tracking...
-	T
-	AlignTo K
-	
-  	# Measure focus and drift
-	ReportTargetDefocus
-	echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
-	Delay $wait
-	CallFunction DriftAndFocus $driftcrit $drifttimes
+    echo Taking Trial image for tracking...
+    T
+    AlignTo K
 
-	ReportDefocus
-	focusplus =  $RepVal1
+    # Measure focus and drift
+    ReportTargetDefocus
+    echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
+    CallFunction DriftAndFocus $driftcrit $drifttimes
 
-	# Record
+    ReportDefocus
+    focusplus =  $RepVal1
+
+    # Record
     CallFunction CheckAutoFill
     echo Taking Record...
     #EarlyReturnNextShot -1
-	R
-	S
-	AlignTo M
-	Copy A M
+    R
+    S
+    AlignTo M
+    Copy A M
 
-	ReportImageShift
-	ISxplus = $RepVal1
-	ISyplus = $RepVal2
+    ReportImageShift
+    ISxplus = $RepVal1
+    ISyplus = $RepVal2
 
-	# Tracking after
-	CallFunction CheckAutoFill
-	echo Tracking after: item $navLabel, tilt $plustilt, img shifts: $ISxplus $ISyplus, defocus $focusplus
+    # Tracking after
+    CallFunction CheckAutoFill
+    echo Tracking after: item $navLabel, tilt $plustilt, img shifts: $ISxplus $ISyplus, defocus $focusplus
     T
-	Copy A K
+    Copy A K
 endfunction
 
 Function TiltMinus
     echo Tilting to $mintilt...
-	TiltTo $mintilt
-	TiltBy $Tiltbacklash
-	TiltTo $mintilt
-	MoveStageTo $StageX $StageY
+    TiltTo $mintilt
+    TiltBy $Tiltbacklash
+    TiltTo $mintilt
+    MoveStageTo $StageX $StageY
 
-	# set to previous used shift/focus	
-	GoToLowDoseArea R
-	SetDefocus $focusmin
-	SetImageShift  $ISxminus $ISyminus
-	
-	# Track
+    # set to previous used shift/focus
+    GoToLowDoseArea R
+    SetDefocus $focusmin
+    SetImageShift  $ISxminus $ISyminus
+
+    # Track
     CallFunction CheckAutoFill
     ResetClock
-	echo Taking Trial image for tracking...
-	T
-	AlignTo L
-	
-   	# Measure focus and drift
-	ReportTargetDefocus
-	echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
-	Delay $wait
-	CallFunction DriftAndFocus $driftcrit $drifttimes
+    echo Taking Trial image for tracking...
+    T
+    AlignTo L
 
-	ReportDefocus
-	focusmin =  $RepVal1
+    # Measure focus and drift
+    ReportTargetDefocus
+    echo Measuring focus (target $RepVal1 um) and drift ($driftcrit A/s max)...
+    CallFunction DriftAndFocus $driftcrit $drifttimes
 
-	# Record
+    ReportDefocus
+    focusmin =  $RepVal1
+
+    # Record
     CallFunction CheckAutoFill
     echo Taking Record...
     #EarlyReturnNextShot -1
-	R
-	S
-	AlignTo N
-	Copy A N
+    R
+    S
+    AlignTo N
+    Copy A N
 
-	ReportImageShift
-	ISxminus = $RepVal1
-	ISyminus = $RepVal2
+    ReportImageShift
+    ISxminus = $RepVal1
+    ISyminus = $RepVal2
 
-	# Tracking after
-	CallFunction CheckAutoFill
-	echo Tracking after: item $navLabel, tilt $mintilt, img shifts: $ISxplus $ISyplus, defocus $focusmin
-	T
-	Copy A L
+    # Tracking after
+    CallFunction CheckAutoFill
+    echo Tracking after: item $navLabel, tilt $mintilt, img shifts: $ISxplus $ISyplus, defocus $focusmin
+    T
+    Copy A L
 endfunction
 
 Function CheckAutoFill
 loop 10
-	AreDewarsFilling
-	if $RepVal1 == 0
-		break
-	elseif $RepVal1 == 1
-                echo Dewars are filling! Delay for 60 sec...
-		delay 60 sec
-	endif
+    AreDewarsFilling
+    if $RepVal1 == 0
+        break
+    elseif $RepVal1 == 1
+        echo Dewars are filling! Delay for 60 sec...
+        delay 60 sec
+    endif
 endloop
 endfunction
 
