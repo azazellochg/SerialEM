@@ -67,7 +67,7 @@ UpdateItemZ
 # realign to item
 Callfunction CheckAutoFill
 echo Doing RealignToItem
-RealignToNavItem 1
+RealignToNavItem 0
 
 CallFunction CycleDefocus
 ReportTargetDefocus
