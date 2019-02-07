@@ -1,0 +1,179 @@
+ScriptName FindTiltRange
+
+# EMBL Heidelberg 2018  Martin Schorb
+
+#-----------------------------------------------------------
+# Assume tilt axis is close to vertical 
+# Assume Eucentricity is set
+# 
+#
+# PARAMETERS:
+
+# tilt magnitude at which to start the search
+starttilt = 40
+
+# initial search increment
+startinc = 10
+
+# absolut maximum tilt
+tiltmax = 70
+
+
+#
+#
+#   script starts here...
+#
+
+SuppressReports
+
+Echo ####################################
+Echo Try to find maximum possible tilt range at current position and mag
+
+# find starting image values
+
+TiltTo 0
+T
+ImageProperties 
+xsize = $ReportedValue1
+ysize = $ReportedValue2
+
+# get mean intensity of central 20% at 0 degrees as a reference
+
+SubareaMean (0.4 * $xsize) (0.6 * $xsize) (0.4 * $ysize) (0.6 * $ysize)
+centerref  = $ReportedValue1
+
+# find maximum positive tilt
+CallFunction ExtremeTilt
+maxtilt = $ex_tilt - 1
+
+
+#find maximum negative tilt
+starttilt = -1 * $starttilt
+startinc = -1 * $startinc
+
+CallFunction ExtremeTilt
+mintilt = $ex_tilt + 1
+
+Echo maximum positive tilt at the current posistion is $maxtilt degrees.
+Echo maximum negative tilt at the current posistion is $mintilt degrees.
+
+TiltTo 0
+
+
+
+# -----------------------------------------------------------------------
+#
+#
+###         Supporting Functions 
+# 
+# 
+#
+
+
+# Test Corners
+
+Function TestCorners 
+# tests the intexity of the four 10-20% corners of an image against a threshold
+
+dark = 0   
+
+SubareaMean (0.1 * $xsize) (0.2 * $xsize) (0.1 * $ysize) (0.2 * $ysize)
+c1  = $ReportedValue1
+SubareaMean (0.1 * $xsize) (0.2 * $xsize) (0.8 * $ysize) (0.9 * $ysize)
+c2  = $ReportedValue1
+SubareaMean (0.8 * $xsize) (0.9 * $xsize) (0.1 * $ysize) (0.2 * $ysize)
+c3  = $ReportedValue1
+SubareaMean (0.8 * $xsize) (0.9 * $xsize) (0.8 * $ysize) (0.9 * $ysize)
+c4  = $ReportedValue1
+
+CallFunction Minimum $c1 $c2 $c3 $c4
+
+If $outmin < 0.3 * $tiltref 
+   dark = 1
+EndIf
+
+EndFunction 
+
+
+# -----------------------
+# Minimum of 4 arguments
+
+Function Minimum 4 0
+array = {$argVal1 $argVal2 $argVal3 $argVal4}
+
+outmin = $array[1]
+   
+Loop $#array ix
+   If $array[$ix] < $outmin
+      outmin = $array[$ix]
+   Endif 
+EndLoop
+
+EndFunction 
+
+# --------------------------
+
+Function ExtremeTilt
+# iteratively determines allowed tilt range
+
+currtilt = $starttilt
+currinc = $startinc
+adjust = 0
+
+Loop 10
+   Echo Check if acquisition possible at $currtilt degrees.
+   TiltTo $currtilt
+   tiltfac = COS $currtilt
+   tiltref =  $tiltfac * $centerref 
+   # Echo allowed: $tiltref 
+   T
+    CallFunction TestCorners
+    
+    # Echo measured:  $outmin     
+    # Echo $dark
+
+    If $dark > 0
+       echo No
+       
+       # decrease increment
+       newinc = $currinc / 2
+       currinc = round $newinc
+       # go back
+       currtilt = $currtilt - $currinc
+       adjust = 1
+    Else
+       Echo OK
+       If $adjust > 0
+          # when coming from a "bad"  angle, decrease increment
+          newinc = $currinc / 2
+          currinc = round $newinc
+          # test further
+          currtilt = $currtilt + $currinc
+          adjust = 0
+       Else
+          # test further
+          currtilt = $currtilt + $currinc
+       Endif 
+    Endif
+
+# finishing conditions
+
+   If abs $currtilt > abs $tiltmax
+      ex_tilt = $currtilt - $currinc - ($currinc / $currinc)
+      Echo reached maximum of defined range
+      break
+   Endif 
+      
+
+    If abs $currinc < 2
+# single degree precision is enough
+       If $adjust > 1
+          ex_tilt = $currtilt - 2 * $currinc
+       Else
+          ex_tilt = $currtilt - $currinc
+       Endif 
+       break
+    Endif     
+ EndLoop 
+
+EndFunction 
