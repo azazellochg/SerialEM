@@ -1,0 +1,318 @@
+MacroName quicktomo_master
+# EMBL Heidelberg 2016  Martin Schorb
+
+########## SETTINGS ########## 
+
+#-----------------------------------------------------------
+
+## ENTER THE TARGET DIRECTOY HERE, MAKE SURE IT EXISTS
+
+
+dir @= D:\data\
+# -----------------------------------------------------------
+
+
+
+## DUAL AXIS TOMOGRAPHY ?
+
+
+dual = 0            # 0 - single axis,   1 - dual tomo first axis,    2 - dual tomo second axis 
+map = 0            # 1 - take additional map image for dual axis realignment
+
+
+# ------------------------------------------------------------
+
+
+## MINIMUM / MAXIMUM TILT AND TILT STEP (HM tomogram)
+
+
+hm_step	  := 1	# stage tilt step in degrees
+hm_maxtilt  := 60	# maximum/minimum tilt
+
+# -----------------------------------------------------------
+
+
+## MAGNIFICATION AND BEAM SETTING (for HM tomo)
+
+hm_mag  := 15500     # magnification
+hm_C2      :=  59.1            # Intensity C2 value in %
+
+# ------------------------------------------------------------
+
+
+
+## AUTOFOCUS SETTINGS
+
+focus_step := 5 # how often to focus during tilt series (default: every 5 degrees)
+
+# ------------------------------------------------------------
+
+## LOW MAGNIFICATION TOMOGRAM (taken after the HM)
+
+lowmag = 1        # 0 - no LM tomo taken, 1 - LM tomo acquired after HM, 2 - single LM image
+
+# IF LM TOMO DESIRED:
+## MINIMUM / MAXIMUM TILT AND TILT STEP (LM tomogram)
+
+lm_step	  := 10	# stage tilt step in degrees
+lm_maxtilt    := 60	
+
+
+## FOCUS, MAGNIFICATION AND BEAM SETTING (for LM tomo)
+
+lm_focus  :=  -50               # target defocus for LM tomo (default -5)
+lm_mag    :=  4700         # magnification
+lm_C2        :=  71             # Intensity C2 value in %
+
+
+# -----------------------------------------------------------------
+
+# DELAY AFTER TILTING
+# this is microscope/camera-specific. For our Tecnai-OneView, we use 150
+
+tilt_delay := 150
+
+########## END SETTINGS ########## 
+
+
+
+
+
+
+
+
+# start Script
+
+ReportFocus foc1
+
+ReportTargetDefocus def1
+
+ReportSpotSize spot
+
+NoMessageBoxOnError 1
+
+ReportNavItem
+
+
+# generate file names
+
+If  $dual == 0 
+
+            filename @= $dir\$navLabel_hm.st
+
+ElseIf $dual == 1
+
+            filename @= $dir\$navLabel_hma.st
+
+ElseIf $dual == 2
+
+            filename @= $dir\$navLabel_hmb.st
+            lowmag = 0
+            
+Endif 
+
+# Echo $filename
+
+OpenNewFile $filename
+
+
+# Set HM microscope state
+
+SetMag $hm_mag
+SetPercentC2 $hm_C2
+SetSpotSize $spot
+
+# run high-mag quick tomo
+
+CallFunction quickHMTomo-nav_AF
+
+If $lowmag == 0
+
+     TiltTo 0
+
+ElseIf $lowmag == 1
+
+#run additional low-mag tomt right afterwards
+
+     filename @= $dir\$navLabel_lm.st
+     #Echo $filename
+
+     SetTargetDefocus $lm_focus
+
+     OpenNewFile $filename
+
+     SetMag $lm_mag     
+     SetPercentC2 $lm_C2
+
+     CallFunction quickLMafterHM-nav
+
+Else
+TiltTo 0
+
+If $lowmag == 2
+   
+# acquire additional single low-mag image
+
+
+    filename1 @= $dir\$navLabel_lm.mrc
+   
+    SetTargetDefocus $lm_focus
+
+    OpenNewFile $filename1
+
+     SetMag $lm_mag     
+     SetPercentC2 $lm_C2
+          
+     G
+     R
+     S
+     
+     CloseFile 
+EndIf
+
+SetTargetDefocus $def1
+
+
+SetDefocus foc1
+ResetImageShift 
+ResetAccumShift 
+
+
+Endif 
+
+
+# ================================================
+# ================================================
+# ================================================
+
+
+Function quickLMafterHM-nav
+# EMBL Heidelberg 2016  Martin Schorb
+
+########## SETTINGS ########## 
+
+step	= $lm_step	# stage tilt step in degrees
+maxtilt	= $lm_maxtilt	
+
+########## END SETTINGS ########## 
+
+
+
+tilttimes = 2 * $maxtilt / $step
+step = $step
+tiltangle = -1 * $maxtilt
+G
+TiltTo $tiltangle
+
+T
+
+Loop $tilttimes
+              
+                 TiltTo $tiltangle
+                 tiltangle = $tiltangle + $step
+
+	# acquire tilt image
+	TiltDuringRecord $tiltangle 0 5
+                      AlignTo B
+	S
+EndLoop
+TiltTo 0
+ResetAccumShift
+NormalizeAllLenses 0
+CloseFile
+
+EndFunction 
+
+
+
+# ================================================
+# ================================================
+# ================================================
+
+Function quickHMTomo-nav_AF
+# EMBL Heidelberg 2016  Martin Schorb
+
+########## SETTINGS ########## 
+
+step	= $hm_step	# stage tilt step in degrees
+maxtilt	= $hm_maxtilt	
+AF_step     = $focus_step
+
+
+########## END SETTINGS ########## 
+
+
+ResetAccumShift 
+ResetImageShift 
+
+tilttimes = 2 * $maxtilt / $step + 1
+tiltangle = 1 * $maxtilt
+
+MoveToNavItem 
+
+Eucentricity 1
+UpdateItemZ
+
+ResetAccumShift
+NormalizeAllLenses 0
+ResetImageShift 
+
+# Realign after Eucentricity for better precision
+RealignToNavItem 1
+
+If $map == 1
+
+   OpenNewFile $dir\$navLabel_map.st
+   G
+   R
+   S
+   NewMap 
+   CloseFile 
+EndIf
+
+# calculate where to take AF
+
+c = 0
+
+div = $maxtilt / $AF_step * 2
+
+Loop $div
+ 
+  a = $maxtilt - $AF_step * $c
+  c = $c + 1
+  AFv$c = $a
+EndLoop 
+
+WalkUpTo $tiltangle
+
+Loop $tilttimes
+              
+           TiltTo $tiltangle                 
+
+         # check if at AF tilt angle
+             c = 0
+             Loop $div
+                 c = $c + 1
+                 testvar = $AFv$c
+                 If $tiltangle == $testvar
+                     Copy A O
+                     G
+                     Copy O A
+                  Endif 
+              Endloop
+
+tiltangle = $tiltangle - $step
+
+	# acquire tilt image
+	TiltDuringRecord $tiltangle 50
+                      AlignTo B
+	S
+                     Delay $tilt_delay
+EndLoop
+
+ResetAccumShift
+NormalizeAllLenses 0
+
+CloseFile
+
+EndFunction 
