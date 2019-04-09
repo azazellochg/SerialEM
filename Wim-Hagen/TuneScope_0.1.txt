@@ -1,5 +1,12 @@
 MacroName TuneScope
 
+# Setup low dose.
+# Switch low dose off.
+# If needed drop the spot size one or two steps, DO NOT CHANGE BEAM SIZE!!! 
+# Burn a carbon area clean to get nice Thon-rings.
+# Adjust desired defocus.
+# Start script and sit back.
+
 # 20190408 Wim Hagen, EMBL Heidelberg
 # Script to tune the Krios
 # Focus is set to zero
