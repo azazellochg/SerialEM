@@ -1,3 +1,10 @@
+# Setup low dose.
+# Switch low dose off.
+# If needed drop the spot size one or two steps, DO NOT CHANGE BEAM SIZE!!! 
+# Burn a carbon area clean to get nice Thon-rings.
+# Adjust desired defocus.
+# Start script and sit back.
+
 # The script will tilt the stage back and forth to give a tilt series with perfect dose distribution.
 MacroName DoseSymmetricTomo
 # EMBL Heidelberg 2015 Wim J. H. Hagen
