@@ -1,0 +1,70 @@
+# check for K2 black stripe
+CallFunction DetectBlackStripe
+
+Function DetectBlackStripe
+   ImageProperties A xsize ysize binning
+   echo $xsize $ysize $binning
+   Height = 512 / $binning
+   Width = 512 / $binning
+
+   # 90 degree rotation so horizontal stripes
+   If $xsize < $ysize
+      Loop 7 index
+         x0 = 0
+         x1 = $xsize - 1
+         y0 = ($index - 1) * $Height + 10
+         y1 = $index * $Height  - 10
+         #echo $x0 $x1 $y0 $y1 
+         SubareaMean $x0 $x1 $y0 $y1 mean
+         If $mean < $BlackStripeTreshold 
+            echo  mean =  $mean : black stripe!
+            #MailSubject Krios 1
+            #SendEmail Black stripe problem, acquisition paused, valves closed.
+            #SetColumnOrGunValve 1
+            #Pause Restart camera (see EM-help) then continue 
+         endif
+      endloop
+
+      yend = $ysize - 1
+      SubareaMean $x0 $x1 $y1 $yend mean
+      if $mean < $BlackStripeTreshold 
+         echo  mean =  $mean : black stripe!
+         #MailSubject Krios 1
+         #SendEmail Black stripe problem, acquisition paused, valves closed.
+         #SetColumnOrGunValve 1
+         #Pause Restart camera (see EM-help) then continue 
+      endif
+   Endif 
+
+   # 0 degree rotation so vertical stripes
+   If $xsize > $ysize
+      Loop 7 index
+         echo $index
+         x0 = ($index - 1) * $Width + 10
+         x1 = $index * $Width  - 10
+         y0 = 0
+         y1 = $ysize - 1 
+         SubareaMean $x0 $x1 $y0 $y1 mean
+         echo $x0 $x1 $y0 $y1 $mean
+         If $mean < $BlackStripeTreshold 
+            echo  mean =  $mean : black stripe!
+            #MailSubject Krios 1
+            #SendEmail Black stripe problem, acquisition paused, valves closed.
+            #SetColumnOrGunValve 1
+            #Pause Restart camera (see EM-help) then continue 
+         endif
+      endloop
+
+      xend = $xsize - 1
+      SubareaMean $x1 $xend $y0 $y1 mean
+      echo $x0 $x1 $y0 $y1 $mean
+      If $mean < $BlackStripeTreshold 
+         echo  mean =  $mean : black stripe!
+         #MailSubject Krios 1
+         #SendEmail Black stripe problem, acquisition paused, valves closed.
+         #SetColumnOrGunValve 1
+         #Pause Restart camera (see EM-help) then continue 
+      endif
+   Endif 
+
+endfunction

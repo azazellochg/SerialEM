@@ -1,0 +1,133 @@
+ScriptName CRmov
+#20190302 M. Jason de la Cruz, MSKCC. For SerialEM-controlled continuous
+#stage rotation and simultaneous mode movie recording for MicroED.
+#Currently works only on Thermo Fisher (FEI) microscopes.
+
+# Copyright (c) 2019, M. Jason de la Cruz, Memorial Sloan Kettering Cancer Center
+# License ISC: Internet Software Consortium license,
+# http://opensource.org/licenses/ISC
+
+# CHANGEABLE SETTINGS
+fullPath = E:\Jason\20180719\20180720_ProtK_1B
+rotationSpeed = 0.0032
+angleStart = 30
+angleEnd = -30
+# Direction: For rotation in positive direction, enter 1; For rotation
+#                     in negative direction, enter 0
+Direction = 0
+# plusMinusRange: This is the buffer range for end angle, due to
+#                                     goniometer imprecision
+plusMinusRange = 0.2
+frameExposureTime = 4
+frameBinning = 1
+#imagingMag: This is generally set to mag setting when exiting out of
+#                           diffraction mode, for scopes that require stage
+#                           calibration in imaging mode
+imagingMag = 1250
+
+# ADVANCED SETTINGS
+# cameras are numbered from 1
+currentCamera = 1
+recordMode = R
+#numberFrames: This is the maximum setting; set to last past
+#                                 tilt range, otherwise data saving will stop
+#                                 before rotation completion; default 400
+numberFrames = 400
+delayTime = $frameExposureTime / 2
+#darkgain: 0 = unprocessed, 1 = dark-subtracted, 2 = gain-normalized
+darkgain = 2
+
+echo ========================================
+echo ===> Running CRmov ...
+echo ========================================
+ProgramTimeStamps
+
+SetDirectory $fullPath
+MakeDateTimeDir
+ReportNavItem
+SetNewFileType 1
+ReportDirectory
+echo $navLabel
+OpenNewFile $navLabel.idoc
+
+ScreenUp
+SetLowDoseMode 1
+GoToLowDoseArea $recordMode
+SetColumnOrGunValve 1
+
+SelectCamera $currentCamera
+CameraProperties
+AddToAutodoc PhysicalPixel $reportedValue4
+ReportCameraLength
+AddToAutodoc CameraLength $reportedValue1
+AddToAutodoc RotationRate $rotationSpeed
+WriteAutodoc
+SetExposure $recordMode $frameExposureTime 0
+SetBinning $recordMode $frameBinning
+SetCameraArea $recordMode F
+SetProcessing $recordMode $darkgain
+
+echo ===> Tilting to $angleStart degrees
+TiltTo $angleStart
+echo ===> Preparing beam and settling...
+StopContinuous
+GoToLowDoseArea $recordMode
+echo Waiting for $delayTime seconds
+Delay $delayTime sec
+
+UseContinuousFrames 1
+echo angleEnd is $angleEnd
+echo rotationSpeed is $rotationSpeed
+BackgroundTilt $angleEnd $rotationSpeed
+
+StartFrameWaitTimer 0
+
+Loop $numberFrames index
+   echo === START PROCESS FOR EXPOSURE $index of $numberFrames max frames ===
+   echo --- Resetting clock
+   resetclock
+   echo Recording $frameExposureTime -second exposure
+   $recordMode
+   WaitForNextFrame
+   echo --- Saving exposure $index with initial angle
+   S
+   reportclock
+   
+   ReportTiltAngle
+   CurrentAngle = $ReportedValue1
+   echo Current Tilt Angle is: $CurrentAngle
+   if $Direction == 0
+      negLimit = $angleEnd + $plusMinusRange
+      echo Specified tilt direction is negative with end angle stop at $negLimit degrees
+      if $CurrentAngle < $negLimit
+      break
+      else
+      continue
+      endif
+   else
+   posLimit = $angleEnd - $plusMinusRange
+   echo Specified tilt direction is positive with end angle stop at $posLimit degrees
+      if $CurrentAngle > $posLimit
+      break
+      else
+      continue
+      endif
+   endif
+
+EndLoop
+
+echo Acquisition complete
+CloseFile
+SetDirectory $fullPath
+ReportDirectory
+StopContinuous
+UseContinuousFrames 0
+RestoreCameraSet $recordMode
+GoToLowDoseArea R
+SetColumnOrGunValve 0
+SetLowDoseMode 0
+Delay 1
+TiltTo 0
+SetMag $imagingMag
+ProgramTimeStamps
+echo ===> Scope standby
