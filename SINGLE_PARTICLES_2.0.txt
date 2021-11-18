@@ -1,0 +1,317 @@
+MacroName SINGLE PARTICLES K2/K3
+ScriptName SPA K2/K3 2.0
+#Single Particles Multiple Holes Multiple Single Record K2/K3
+#This script has been written by the EM Facility at the MRC-LMB based on ideas from Chen Xu, Wim Hagen and David Mastronarde
+
+####### SETTINGS #######
+# Reference hole image from View should be in buffer P
+# IMPORTANT!!!! Before you run this script make sure to clean persistent variables!
+
+
+DelayAfterStageShift = 0.5 # in seconds.
+DriftCrit = 1.5 # A/sec.
+DriftTimes = 10 # number of drift measurements before quitting.
+TD_low = -0.8 # low defocus microns.
+TD_high = -2.4 # high defocus microns.
+Delta = 0.2 # defocus step microns.
+
+MaxHoleShift = 500 # max shift allowed before resetting image shift (in nm). This involve stage movement.
+MaxHoleShiftAllowed = 20 # max shift allowed after resetting image shift (in nm).
+
+Multishot = 1 # 1 if you set up Multi-shot dialog
+PhasePlate = 0 # 0 no; 1 yes (only works on Krios 3).
+PhasePlatePeriodicity = 120 # How often to change phase plate position.
+Check = 1 # 1 Means check dewar filling, 0 do not check.
+UpdateDark = 1 # 1 means yes do it (every 3 hours); 0 do not do it.
+RefineZeroLoss = 0 # 1 means yes do it; 0 do not do it.
+RefineZeroLossEvery = 180 # time in minutes.
+SaveJPEGs = 0 # 1 will save only for the last image in the multi-shot pattern
+
+####### END SETTINGS #######
+
+####### MOVING TO ITEM ################
+SuppressReports
+CallFunction Dark
+If $Multishot == 1
+    ReportNumHoleAcquire
+    itemsTodo = $ReportedValue1
+Else
+   ReportNumNavAcquire itemsTodo
+EndIf
+Echo Movies left to acquire: $itemsTodo
+ResetClock
+CallFunction DelayStage
+
+## turn ON drift protection if it's off so Autofocus can report drift
+ReportUserSetting DriftProtection DP 
+If $DP == 0
+    SetUserSetting DriftProtection 1 1
+EndIf
+
+FocusChangeLimits -10 10
+
+
+####### HOLE CENTERING ################
+CallFunction AutoFillSPA
+CallFunction AlignToP
+#AlignToTemplate $MaxHoleShiftAllowed $MaxHoleShift 5 0 template
+
+####### FOCUS & DRIFT #################
+CallFunction AutoFillSPA
+CallFunction TargetDefocus
+If $Multishot == 1
+    Echo Autofocus every hole cluster
+    CallFunction FocusAndDrift
+Else
+    ReportGroupStatus gs
+    If $gs == 1
+        Echo Autofocus every 1st item in a group
+        CallFunction FocusAndDrift
+    EndIf
+EndIf
+####### ACQUIRE AND SAVE IMAGES #######
+CallFunction AcquireImages
+CallFunction PhasePlate
+CallFunction CountImages
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####### Functions & VARIABLES#######
+
+Function SaveJPEG
+    If $SaveJPEGs == 1
+        ReportLastFrameFile
+        filename = $reportedValue1
+        SaveToOtherFile A JPEG JPEG $filename.jpg 
+    EndIf
+EndFunction 
+
+Function RefineZeroLossPeak
+    If $RefineZeroLoss == 1
+        ImageShiftToLastMultiHole
+        ResetImageShift 2
+        RefineZLP $RefineZeroLossEvery
+    EndIf
+EndFunction 
+
+Function SkippedHoles
+    IsVariableDefined Skipped
+    If $ReportedValue1 == 0
+        Skipped := 0
+    EndIf
+    Skipped := $Skipped + 1
+EndFunction
+
+Function PhasePlate
+    If $PhasePlate == 1
+        IsVariableDefined ChangePhasePlate
+        If $ReportedValue1 == 0
+            ChangePhasePlate := 0
+        EndIf
+        ChangePhasePlate := $ChangePhasePlate + 1
+
+        If $ChangePhasePlate == $PhasePlatePeriodicity
+            PhasePlateToNextPos
+            ReportPhasePlatePos
+            Echo Changing phase plate position to $RepVal1
+            ChangePhasePlate := 0
+        EndIf
+    EndIf
+EndFunction
+
+Function Dark
+    If $UpdateDark == 1
+        UpdateHWDarkRef 3 # every 3 hours
+    EndIf
+EndFunction
+
+Function DelayStage
+    Echo Waiting $DelayAfterStageShift seconds for stage to relax
+    Delay $DelayAfterStageShift
+EndFunction
+
+Function CountImages
+    ReportClock
+    runtime = $ReportedValue1
+    ReportNavItem 
+    If $Multishot == 0
+       done = 1
+    Else
+        done = $navNumHoles
+    EndIf
+    Echo Done acquiring at item $navLabel, done = $done
+    imagesHour = NEARINT ( 3600 * $done / $runtime)
+    
+    IsVariableDefined Count
+    If $ReportedValue1 == 0
+        Count := 0
+    EndIf
+    Count := $Count + $done
+    
+    Echo Congratulations!!! You have already acquired $Count images!
+    IsVariableDefined Skipped
+    If $RepVal1 == 1
+        Echo $Skipped position/s were skipped because centering failed...
+    EndIf
+    Echo Now acquiring approx. $imagesHour movies/h
+EndFunction
+
+Function AutoFillSPA
+    If $check == 1
+        Loop 10
+            AreDewarsFilling
+            If $ReportedValue1 == 0
+                Echo Dewars are not filling...
+                Break
+            ElseIf $ReportedValue1 == 1
+                Echo Dewars are filling waiting 60 seconds and then checking again
+                Delay 60 sec
+            EndIf
+        EndLoop
+    EndIf
+EndFunction
+
+Function AlignToP
+    Echo Centering hole
+    Loop 6 times
+        if $times > 5
+            echo Skipping hole as centering failed... going to the next item.
+            CallFunction SkippedHoles
+            exit
+        endif
+        V
+        AlignTo P 0 1
+        ReportAlignShift
+        HoleShift = sqrt $ReportedValue5 * $ReportedValue5 + $ReportedValue6 * $ReportedValue6
+        If $HoleShift < $MaxHoleShift
+            If $HoleShift < $maxHoleShiftAllowed
+                Echo Hole seems centered (It was off by $HoleShift nm)
+                Break
+            Elseif  $HoleShift > $maxHoleShiftAllowed
+                Echo Not centered yet (It was off by $HoleShift nm)... trying again.
+            Endif
+        ElseIf $HoleShift > $MaxHoleShift
+            Echo Hole is off by $HoleShift nm, more than $MaxHoleShift nm set. Reseting image shift and trying again
+            ResetImageShift 2
+        EndIf
+    EndLoop
+EndFunction
+
+Function TargetDefocus
+    BigStep = $TD_low - $TD_high
+    ReportTargetDefocus
+    TD = $ReportedValue1
+
+    If $TD > $TD_low
+        Diff = $TD - $TD_low
+        IncTargetDefocus -$Diff
+    ElseIf $TD > $TD_high
+        IncTargetDefocus -$Delta
+    Else
+        IncTargetDefocus $BigStep
+    EndIf
+
+    ReportTargetDefocus
+    TargetDefocus = $ReportedValue1
+    Echo Applying a defocus of $TargetDefocus for this item
+EndFunction
+
+Function FocusAndDrift
+    Loop $DriftTimes
+        Autofocus
+        ReportFocusDrift
+        DriftX = $ReportedValue1
+        DriftY = $ReportedValue2
+        DriftInAng = 10 * SQRT ( $DriftX * $DriftX + $DriftY * $DriftY )
+
+        If $DriftInAng < $DriftCrit
+            Echo Drift $DriftInAng is lower than threshold $DriftCrit A/sec
+            Break
+        Else
+            Echo Drift $DriftInAng is higher than threshold $DriftCrit A/sec... checking again.
+        EndIf
+    EndLoop
+EndFunction
+
+Function AcquireImages
+    CallFunction AutoFillSPA
+    If $Multishot == 1
+        MultipleRecords
+    Else
+        AdjustBeamTiltforIS 
+        Record
+        RestoreBeamTilt
+    Endif
+    CallFunction SaveJPEG        
+    CallFunction RefineZeroLossPeak
+EndFunction

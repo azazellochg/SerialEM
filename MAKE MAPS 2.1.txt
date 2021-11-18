@@ -1,0 +1,58 @@
+MacroName MAKE GRID-SQUARE MAPS 2.1
+#This script has been written by the EM Facility at the MRC-LMB
+# Eucentricity by focus must be calibrated in advance!
+
+eucentricity_mag = 11500
+eucentricity_beam_size = 8
+eucentricity_spot_size = 5
+where_to_save_maps = Z:\Gregory
+SaveJPEGs = 0 # 1 means yes do it; 0 do not do it.
+
+SuppressReports
+ReportMag 0
+square_map_mag = $RepVal1
+ReportSpotSize
+square_map_spot_size = $RepVal1
+ReportIlluminatedArea
+square_map_beam_size = $RepVal1 
+T
+Copy A P
+Echo Going to higher mag to do eucentricity by beam tilt..
+SetMag $eucentricity_mag
+SetSpotSize $eucentricity_spot_size 
+SetIlluminatedArea $eucentricity_beam_size * 0.01 
+Delay 1
+Eucentricity -1
+UpdateItemZ
+SetMag $square_map_mag 
+SetSpotSize $square_map_spot_size
+SetIlluminatedArea $square_map_beam_size 
+
+Echo Re-centering map
+Loop 10 holes
+    T
+    AlignTo P 0 1
+    ReportAlignShift
+    MapShift = sqrt $ReportedValue5 * $ReportedValue5 + $ReportedValue6 * $ReportedValue6
+
+    If $MapShift < 100
+                  Echo Map is centered (It was off by $MapShift nm)
+                  Break
+    ElseIf $MapShift > 100
+        Echo Map is off by $MapShift nm. Resetting image shift and trying again
+        ResetImageShift 2
+    EndIf
+EndLoop
+R
+ReportNavItem
+OpenNewFile $where_to_save_maps\$navLabel-square_map.mrc
+Save A
+NewMap
+
+If $SaveJPEGs == 1
+    ReportCurrentFilename
+    filename = $reportedValue1
+    SaveToOtherFile A JPEG JPEG $filename.jpg 
+EndIf
+
+CloseFile
