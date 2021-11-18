@@ -1,6 +1,0 @@
-MacroName Realign
-# a macro to realign to a nav item and then clear
-# out any ImageShift afterwards.
-
-RealignToNavItem 0
-Call ZeroIS

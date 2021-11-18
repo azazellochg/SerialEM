@@ -1,8 +1,0 @@
-MacroName RealignInLD
-# a macro to realign to a nav item in Low-Dose mode 
-# and then clear out any ImageShift afterwards.
-# 
-# note: it requires the V is at the same mag as map.
-
-RealignToNavItem 1
-Call ZeroIS

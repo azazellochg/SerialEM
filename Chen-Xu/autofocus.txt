@@ -1,9 +1,0 @@
-# change target defocus 
-Call CycleTargetDefocus
-
-Autofocus 
-Autofocus
-
-Call Drift
-R
-S

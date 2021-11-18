@@ -1,7 +1,0 @@
-MacroName ZeroIS
-# a macro to to to a new position in current image
-#
-# update @ 2014-10-22 05:29:51
-
-Copy A P
-Call AlignToP
